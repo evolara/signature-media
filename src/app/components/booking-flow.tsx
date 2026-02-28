@@ -376,6 +376,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
                   <button
                     onClick={handleFormNext}
+                    disabled={Object.keys(validateForm(formData)).length > 0}
                     className="w-full bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-opacity"
                     style={{ fontFamily: AR(lang) }}
                   >
@@ -448,10 +449,10 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                   <div className="space-y-3 mb-6">
                     {(['vodafone', 'card', 'instapay', 'later'] as const).map((method) => {
                       const labels = {
-                        vodafone: lang === 'ar' ? text.vodafonePayment : text.vodafonePayment,
-                        card: lang === 'ar' ? text.cardPayment : text.cardPayment,
-                        instapay: lang === 'ar' ? text.instaPayment : text.instaPayment,
-                        later: lang === 'ar' ? text.laterPayment : text.laterPayment,
+                        vodafone: text.vodafonePayment,
+                        card: text.cardPayment,
+                        instapay: text.instaPayment,
+                        later: text.laterPayment,
                       };
                       const icons = {
                         vodafone: '📱',
