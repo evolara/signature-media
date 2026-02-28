@@ -16,6 +16,7 @@ interface FormData {
   name: string;
   phone: string;
   quantity: number;
+  paymentMethod?: 'cash' | 'transfer' | 'card';
 }
 
 function generateBookingCode() {
@@ -62,7 +63,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
   const text = {
     ar: {
-      stepLabels: ['البيانات', 'المقاعد', 'التأكيد'],
+      stepLabels: ['البيانات', 'المقاعد', 'الدفع', 'التأكيد'],
       ticketName: isVip ? 'VIP Signature' : 'Classic Ticket',
       ticketPrice: isVip ? '500 جنيه' : '350 جنيه',
       name: 'الاسم الكامل',
@@ -72,8 +73,15 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       quantity: 'عدد التذاكر',
       quantityPh: '1',
       selectSeats: 'اختر المقاعد',
+      paymentMethod: 'طريقة الدفع',
+      cashPayment: 'الدفع كاش',
+      bankTransfer: 'تحويل بنكي',
+      cardPayment: 'بطاقة ائتمان',
       review: 'راجع البيانات',
       send: 'أرسل عبر واتساب',
+      supportNumber: '+20 10 15656650',
+      support: 'للشكاوي والاستفسارات',
+      ticketDelivery: 'سيتم إرسال التذاكر PDF عبر الواتساب',
       next: 'التالي',
       back: 'رجوع',
       err: {
@@ -84,7 +92,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       },
     },
     en: {
-      stepLabels: ['Details', 'Seats', 'Confirm'],
+      stepLabels: ['Details', 'Seats', 'Payment', 'Confirm'],
       ticketName: isVip ? 'VIP Signature' : 'Classic Ticket',
       ticketPrice: isVip ? '500 EGP' : '350 EGP',
       name: 'Full Name',
@@ -94,8 +102,15 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       quantity: 'Quantity',
       quantityPh: '1',
       selectSeats: 'Select Seats',
+      paymentMethod: 'Payment Method',
+      cashPayment: 'Cash Payment',
+      bankTransfer: 'Bank Transfer',
+      cardPayment: 'Credit Card',
       review: 'Review Info',
       send: 'Send via WhatsApp',
+      supportNumber: '+20 10 15656650',
+      support: 'For complaints and inquiries',
+      ticketDelivery: 'Tickets will be sent as PDF via WhatsApp',
       next: 'Next',
       back: 'Back',
       err: {
@@ -124,16 +139,31 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     const errs = validateSeats(formData.quantity, selectedSeats);
     setErrors(errs);
     if (Object.keys(errs).length === 0) {
-      setStep(3);
+      setStep(3); // Payment Method
     }
+  };
+
+  const handlePaymentNext = () => {
+    if (!formData.paymentMethod) {
+      setErrors({ payment: 'payment' });
+      return;
+    }
+    setStep(4); // Review & Send
   };
 
   const handleSendWhatsApp = () => {
     const seatsList = selectedSeats.map(s => `${s.row}${s.number}`).join(', ');
+    const paymentLabels = {
+      ar: { cash: 'الدفع كاش', transfer: 'تحويل بنكي', card: 'بطاقة ائتمان' },
+      en: { cash: 'Cash Payment', transfer: 'Bank Transfer', card: 'Credit Card' }
+    };
+    const paymentLabel = paymentLabels[lang][formData.paymentMethod || 'cash'];
+    
     const message = lang === 'ar'
-      ? `🎫 حجز جديد\n\nالاسم: ${formData.name}\nالهاتف: ${formData.phone}\nعدد التذاكر: ${formData.quantity}\nالمقاعد: ${seatsList}\nنوع التذكرة: ${text.ticketName}`
-      : `🎫 New Booking\n\nName: ${formData.name}\nPhone: ${formData.phone}\nQuantity: ${formData.quantity}\nSeats: ${seatsList}\nTicket: ${text.ticketName}`;
-    const waUrl = `https://wa.me/20?text=${encodeURIComponent(message)}`;
+      ? `🎫 حجز جديد\n\nالاسم: ${formData.name}\nالهاتف: ${formData.phone}\nعدد التذاكر: ${formData.quantity}\nالمقاعد: ${seatsList}\nنوع التذكرة: ${text.ticketName}\nطريقة الدفع: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n📞 ${text.support}:\n${text.supportNumber}`
+      : `🎫 New Booking\n\nName: ${formData.name}\nPhone: ${formData.phone}\nQuantity: ${formData.quantity}\nSeats: ${seatsList}\nTicket: ${text.ticketName}\nPayment Method: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n📞 ${text.support}:\n${text.supportNumber}`;
+    
+    const waUrl = `https://wa.me/201015656650?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
     toast.success(lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened');
   };
@@ -389,8 +419,49 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                 </motion.div>
               )}
 
-              {/* Step 3: Review & Send WhatsApp */}
+              {/* Step 3: Payment Method */}
               {step === 3 && (
+                <motion.div key="s3" variants={slideVar} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
+                  <h2 className="text-xl font-black text-white mb-6" style={{ fontFamily: AR(lang) }}>
+                    {text.paymentMethod}
+                  </h2>
+
+                  <div className="space-y-3 mb-6">
+                    {['cash', 'transfer', 'card'].map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => {
+                          setFormData(p => ({ ...p, paymentMethod: method as any }));
+                          setErrors(e => ({ ...e, payment: '' }));
+                        }}
+                        className={`w-full p-4 rounded-xl border-2 transition-all text-sm font-semibold ${
+                          formData.paymentMethod === method
+                            ? 'border-[#C6A04C] bg-[#C6A04C]/10 text-[#C6A04C]'
+                            : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/8'
+                        }`}
+                        style={{ fontFamily: AR(lang) }}
+                      >
+                        {text[method === 'cash' ? 'cashPayment' : method === 'transfer' ? 'bankTransfer' : 'cardPayment']}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <BackBtn />
+                    <button
+                      onClick={handlePaymentNext}
+                      disabled={!formData.paymentMethod}
+                      className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3 rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-opacity"
+                      style={{ fontFamily: AR(lang) }}
+                    >
+                      {text.next} {lang === 'ar' ? '←' : '→'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 4: Review & Send WhatsApp */}
+              {step === 4 && (
                 <motion.div
                   key="s3"
                   variants={slideVar}
@@ -449,6 +520,21 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                         {selectedSeats.map(s => `${s.row}${s.number}`).join(', ')}
                       </p>
                     </div>
+
+                    <div className="bg-[#111] border border-white/6 rounded-xl p-4">
+                      <p className="text-white/40 text-xs mb-1" style={{ fontFamily: AR(lang) }}>
+                        {text.paymentMethod}
+                      </p>
+                      <p className="text-white text-sm">
+                        {text[formData.paymentMethod === 'cash' ? 'cashPayment' : formData.paymentMethod === 'transfer' ? 'bankTransfer' : 'cardPayment']}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#A8382A]/15 border border-[#A8382A]/30 rounded-xl p-4 mb-4">
+                    <p className="text-white/70 text-xs mb-2" style={{ fontFamily: AR(lang) }}>{text.support}:</p>
+                    <p className="text-[#C6A04C] font-bold text-sm">{text.supportNumber}</p>
+                    <p className="text-white/50 text-xs mt-2" style={{ fontFamily: AR(lang) }}>{text.ticketDelivery}</p>
                   </div>
 
                   <button
