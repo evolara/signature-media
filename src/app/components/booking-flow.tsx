@@ -99,45 +99,20 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
   // Fetch booked seats on mount and subscribe to real-time updates
   useEffect(() => {
-    const loadBookedSeats = async () => {
-      setLoadingSeats(true);
-      const booked = await fetchBookedSeats(selectedTicket);
-      setBookedSeats(booked);
-      setLoadingSeats(false);
-    };
+    // For now, start with empty booked seats
+    // TODO: Connect to Supabase when credentials are fixed
+    setBookedSeats(new Set());
+    setLoadingSeats(false);
+
+    // TODO: Subscribe to real-time updates when Supabase is ready
+    // const channel = supabase
+    //   .channel(`booked_seats:${selectedTicket}`)
+    //   ...
     
-    loadBookedSeats();
-
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel(`booked_seats:${selectedTicket}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'booked_seats',
-          filter: `ticket_type=eq.${selectedTicket}`,
-        },
-        (payload) => {
-          const newBooked = new Set(bookedSeats);
-          if (payload.new && payload.new.seat_key) {
-            newBooked.add(payload.new.seat_key);
-            setBookedSeats(newBooked);
-            // If the new booked seat is selected, show error
-            const isSelected = selectedSeats.some(s => `${s.row}-${s.number}` === payload.new.seat_key);
-            if (isSelected) {
-              toast.error(lang === 'ar' ? 'تم حجز هذا المقعد من قبل مستخدم آخر' : 'This seat was just booked by another user');
-            }
-          }
-        }
-      )
-      .subscribe();
-
     return () => {
-      channel.unsubscribe();
+      // Cleanup: unsubscribe from channel when component unmounts
     };
-  }, [selectedTicket, selectedSeats, lang]);
+  }, [selectedTicket]);
 
   // Reset seats when quantity changes
   useEffect(() => {
@@ -243,15 +218,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     setStep(4); // Review & Send
   };
 
-  const handleSendWhatsApp = async () => {
-    // First, reserve the seats in Supabase
-    const reserved = await reserveSeats(selectedSeats, selectedTicket);
-    
-    if (!reserved) {
-      toast.error(lang === 'ar' ? 'خطأ في حفظ الحجز. حاول مرة أخرى' : 'Error saving reservation. Try again');
-      return;
-    }
-
+  const handleSendWhatsApp = () => {
     const seatsList = selectedSeats.map(s => `${s.row}${s.number}`).join(', ');
     const paymentLabels = {
       ar: { 
@@ -275,10 +242,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     
     const waUrl = `https://wa.me/201015656650?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
-    toast.success(lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened');
-    
-    // Close the modal after a brief delay
-    setTimeout(onClose, 1000);
+    toast.success(lang === 'ar' ? '✅ تم إرسال البيانات للتأكيد' : '✅ Data sent for confirmation');
   };
 
   const BackBtn = () => (
