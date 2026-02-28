@@ -7,7 +7,7 @@ import { CounterBadge } from './counter-badge';
 
 interface TicketsSectionProps {
   lang: 'ar' | 'en';
-  onSelectTicket: (type: 'vip' | 'standard') => void;
+  onSelectTicket: (type: 'vip' | 'classic') => void;
 }
 
 
@@ -264,7 +264,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
           <TicketCard
             lang={lang} isVip={false}
-            onSelect={() => onSelectTicket('standard')}
+            onSelect={() => onSelectTicket('classic')}
             title={t.classicTitle} titleSub={t.classicSub}
             badge={t.classicBadge}
             price={t.classicPrice} currency={t.classicCur}
