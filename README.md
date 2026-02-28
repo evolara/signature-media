@@ -34,10 +34,18 @@ Requests will by default hit `/api/reserved` and `/api/reserve`. In development 
 
 Once deployed, all visitors will see real‑time reserved seats; trying to select an already reserved seat will show a message and prevent booking.
 
-## How it works
+### Supabase Setup
 
-- **GET `/api/reserved`** returns arrays `{ vip: string[], classic: string[] }` representing taken seats (such as `"A-1"`).
-- **POST `/api/reserve`** accepts `{ ticketType, seats }` and attempts to atomically reserve seats. Conflicts yield `409` with the conflicting positions.
-- Frontend fetches these endpoints and disables occupied seats.
+The backend now uses Supabase for storage. To prepare your database:
 
-Feel free to extend with authentication, persistence upgrades or a different database.
+1. In the Supabase dashboard, open the SQL editor and run:
+   ```sql
+   create table reservations (
+     seat_id text primary key,
+     ticket_type text not null,
+     created_at timestamp with time zone default now()
+   );
+   ```
+2. Make sure the `anon` key has `insert`/`select` rights on that table (enable public schema access or adjust RLS policies).
+
+Your environment should contain the public variables `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (already provided above); serverless functions will also use them automatically.
