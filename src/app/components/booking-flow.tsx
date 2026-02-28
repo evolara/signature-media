@@ -52,6 +52,12 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
+  // Reset seats when quantity changes
+  useEffect(() => {
+    setSelectedSeats([]);
+    setErrors(e => ({ ...e, seats: '' }));
+  }, [formData.quantity]);
+
   const isVip = selectedTicket === 'vip';
 
   const text = {
@@ -125,10 +131,11 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
   const handleSendWhatsApp = () => {
     const seatsList = selectedSeats.map(s => `${s.row}${s.number}`).join(', ');
     const message = lang === 'ar'
-      ? `الاسم: ${formData.name}\nالهاتف: ${formData.phone}\nعدد التذاكر: ${formData.quantity}\nالمقاعد: ${seatsList}\nنوع التذكرة: ${text.ticketName}`
-      : `Name: ${formData.name}\nPhone: ${formData.phone}\nQuantity: ${formData.quantity}\nSeats: ${seatsList}\nTicket: ${text.ticketName}`;
-    const waUrl = `https://wa.me/201015656650?text=${encodeURIComponent(message)}`;
+      ? `🎫 حجز جديد\n\nالاسم: ${formData.name}\nالهاتف: ${formData.phone}\nعدد التذاكر: ${formData.quantity}\nالمقاعد: ${seatsList}\nنوع التذكرة: ${text.ticketName}`
+      : `🎫 New Booking\n\nName: ${formData.name}\nPhone: ${formData.phone}\nQuantity: ${formData.quantity}\nSeats: ${seatsList}\nTicket: ${text.ticketName}`;
+    const waUrl = `https://wa.me/20?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
+    toast.success(lang === 'ar' ? 'تم فتح واتساب' : 'WhatsApp opened');
   };
 
   const BackBtn = () => (
@@ -350,6 +357,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
                   <div className="mb-6 overflow-x-auto">
                     <SeatPicker
+                      key={`${selectedTicket}-${formData.quantity}`}
                       type={selectedTicket}
                       available={new Set<string>()}
                       quantity={formData.quantity}

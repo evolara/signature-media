@@ -10,7 +10,7 @@ import { NavBar } from './components/navbar';
 
 export default function App() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [selectedTicket, setSelectedTicket] = useState<'vip' | 'standard' | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<'vip' | 'classic' | null>(null);
   const [showBookingFlow, setShowBookingFlow] = useState(false);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function App() {
     document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSelectTicket = (type: 'vip' | 'standard') => {
+  const handleSelectTicket = (type: 'vip' | 'classic') => {
     setSelectedTicket(type);
     setShowBookingFlow(true);
   };
