@@ -36,16 +36,41 @@ Once deployed, all visitors will see real‑time reserved seats; trying to selec
 
 ### Supabase Setup
 
-The backend now uses Supabase for storage. To prepare your database:
+The app talks directly to Supabase from the client. Create a table to store booked seats:
 
-1. In the Supabase dashboard, open the SQL editor and run:
+1. In the Supabase dashboard, open the SQL editor and run either of these definitions (the front‑end uses `booked_seats`, the earlier API used `reservations`; both are equivalent):
    ```sql
+   -- preferred for the current frontend code
+   create table booked_seats (
+     seat_key text primary key,
+     ticket_type text not null,
+     created_at timestamp with time zone default now()
+   );
+
+   -- alternative name that older instructions mentioned
    create table reservations (
      seat_id text primary key,
      ticket_type text not null,
      created_at timestamp with time zone default now()
    );
    ```
-2. Make sure the `anon` key has `insert`/`select` rights on that table (enable public schema access or adjust RLS policies).
 
-Your environment should contain the public variables `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (already provided above); serverless functions will also use them automatically.
+   If you create the `reservations` table but want to keep using the API routes above, you may leave it as is and adjust the table name in the client code.
+
+2. Add a unique index on the seat column if you expect concurrent inserts (the `PRIMARY KEY` already ensures this).
+3. Ensure the **anon** role has `SELECT` and `INSERT` permissions on the table. You can either enable public access to the table or add a Row Level Security policy like:
+   ```sql
+   -- example RLS policy allowing anyone to insert/select
+   alter table booked_seats enable row level security;
+   create policy "anon read/write" on booked_seats for select using (true);
+   create policy "anon insert" on booked_seats for insert with check (true);
+   ```
+
+Environment variables needed on Vercel (and in `.env` locally):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
+
+(These map to Vite's `VITE_…` variables automatically during build.)
