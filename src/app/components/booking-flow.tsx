@@ -16,7 +16,7 @@ interface FormData {
   name: string;
   phone: string;
   quantity: number;
-  paymentMethod?: 'cash' | 'transfer' | 'card';
+  paymentMethod?: 'vodafone' | 'card' | 'instapay' | 'later';
 }
 
 function generateBookingCode() {
@@ -63,7 +63,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
   const text = {
     ar: {
-      stepLabels: ['البيانات', 'المقاعد', 'الدفع', 'التأكيد'],
+      stepLabels: ['البيانات', 'المقاعد', 'طريقة الدفع', 'التأكيد'],
       ticketName: isVip ? 'VIP Signature' : 'Classic Ticket',
       ticketPrice: isVip ? '500 جنيه' : '350 جنيه',
       name: 'الاسم الكامل',
@@ -73,15 +73,18 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       quantity: 'عدد التذاكر',
       quantityPh: '1',
       selectSeats: 'اختر المقاعد',
-      paymentMethod: 'طريقة الدفع',
-      cashPayment: 'الدفع كاش',
-      bankTransfer: 'تحويل بنكي',
-      cardPayment: 'بطاقة ائتمان',
-      review: 'راجع البيانات',
+      paymentMethod: 'اختر طريقة الدفع',
+      paymentDesc: 'نحن نوفر عدة طرق آمنة وموثوقة للدفع',
+      vodafonePayment: 'فودافون كاش',
+      cardPayment: 'كارت بنكي',
+      instaPayment: 'انستاباي',
+      laterPayment: 'أريد التواصل قبل الدفع',
+      review: 'تأكيد البيانات',
       send: 'أرسل عبر واتساب',
       supportNumber: '+20 10 15656650',
       support: 'للشكاوي والاستفسارات',
-      ticketDelivery: 'سيتم إرسال التذاكر PDF عبر الواتساب',
+      trustBadge: 'منصة آمنة وموثوقة',
+      ticketDelivery: 'سيتم إرسال التذاكر PDF عبر الواتساب بعد تأكيد الحجز',
       next: 'التالي',
       back: 'رجوع',
       err: {
@@ -102,15 +105,18 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       quantity: 'Quantity',
       quantityPh: '1',
       selectSeats: 'Select Seats',
-      paymentMethod: 'Payment Method',
-      cashPayment: 'Cash Payment',
-      bankTransfer: 'Bank Transfer',
-      cardPayment: 'Credit Card',
-      review: 'Review Info',
+      paymentMethod: 'Choose Payment Method',
+      paymentDesc: 'We offer several safe and reliable payment methods',
+      vodafonePayment: 'Vodafone Cash',
+      cardPayment: 'Bank Card',
+      instaPayment: 'InstaPay',
+      laterPayment: 'Contact Before Paying',
+      review: 'Confirm Details',
       send: 'Send via WhatsApp',
       supportNumber: '+20 10 15656650',
       support: 'For complaints and inquiries',
-      ticketDelivery: 'Tickets will be sent as PDF via WhatsApp',
+      trustBadge: 'Safe & Trusted Platform',
+      ticketDelivery: 'Tickets will be sent as PDF via WhatsApp after booking confirmation',
       next: 'Next',
       back: 'Back',
       err: {
@@ -154,14 +160,24 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
   const handleSendWhatsApp = () => {
     const seatsList = selectedSeats.map(s => `${s.row}${s.number}`).join(', ');
     const paymentLabels = {
-      ar: { cash: 'الدفع كاش', transfer: 'تحويل بنكي', card: 'بطاقة ائتمان' },
-      en: { cash: 'Cash Payment', transfer: 'Bank Transfer', card: 'Credit Card' }
+      ar: { 
+        vodafone: 'فودافون كاش', 
+        card: 'كارت بنكي', 
+        instapay: 'انستاباي',
+        later: 'أريد التواصل قبل الدفع'
+      },
+      en: { 
+        vodafone: 'Vodafone Cash', 
+        card: 'Bank Card', 
+        instapay: 'InstaPay',
+        later: 'Contact Before Paying'
+      }
     };
-    const paymentLabel = paymentLabels[lang][formData.paymentMethod || 'cash'];
+    const paymentLabel = paymentLabels[lang][formData.paymentMethod || 'vodafone'];
     
     const message = lang === 'ar'
-      ? `🎫 حجز جديد\n\nالاسم: ${formData.name}\nالهاتف: ${formData.phone}\nعدد التذاكر: ${formData.quantity}\nالمقاعد: ${seatsList}\nنوع التذكرة: ${text.ticketName}\nطريقة الدفع: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n📞 ${text.support}:\n${text.supportNumber}`
-      : `🎫 New Booking\n\nName: ${formData.name}\nPhone: ${formData.phone}\nQuantity: ${formData.quantity}\nSeats: ${seatsList}\nTicket: ${text.ticketName}\nPayment Method: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n📞 ${text.support}:\n${text.supportNumber}`;
+      ? `🎫 حجز جديد\n\n👤 الاسم: ${formData.name}\n📞 الهاتف: ${formData.phone}\n🎟️ عدد التذاكر: ${formData.quantity}\n💺 المقاعد: ${seatsList}\n🎭 نوع التذكرة: ${text.ticketName}\n💳 طريقة الدفع: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n✅ منصة آمنة وموثوقة\n\n📞 للشكاوي والاستفسارات:\n${text.supportNumber}`
+      : `🎫 New Booking\n\n👤 Name: ${formData.name}\n📞 Phone: ${formData.phone}\n🎟️ Quantity: ${formData.quantity}\n💺 Seats: ${seatsList}\n🎭 Ticket: ${text.ticketName}\n💳 Payment Method: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n✅ Safe & Trusted Platform\n\n📞 For complaints and inquiries:\n${text.supportNumber}`;
     
     const waUrl = `https://wa.me/201015656650?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
@@ -422,28 +438,54 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
               {/* Step 3: Payment Method */}
               {step === 3 && (
                 <motion.div key="s3" variants={slideVar} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
-                  <h2 className="text-xl font-black text-white mb-6" style={{ fontFamily: AR(lang) }}>
+                  <h2 className="text-xl font-black text-white mb-2" style={{ fontFamily: AR(lang) }}>
                     {text.paymentMethod}
                   </h2>
+                  <p className="text-white/50 text-xs mb-6" style={{ fontFamily: AR(lang) }}>
+                    {text.paymentDesc}
+                  </p>
 
                   <div className="space-y-3 mb-6">
-                    {['cash', 'transfer', 'card'].map((method) => (
-                      <button
-                        key={method}
-                        onClick={() => {
-                          setFormData(p => ({ ...p, paymentMethod: method as any }));
-                          setErrors(e => ({ ...e, payment: '' }));
-                        }}
-                        className={`w-full p-4 rounded-xl border-2 transition-all text-sm font-semibold ${
-                          formData.paymentMethod === method
-                            ? 'border-[#C6A04C] bg-[#C6A04C]/10 text-[#C6A04C]'
-                            : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/8'
-                        }`}
-                        style={{ fontFamily: AR(lang) }}
-                      >
-                        {text[method === 'cash' ? 'cashPayment' : method === 'transfer' ? 'bankTransfer' : 'cardPayment']}
-                      </button>
-                    ))}
+                    {(['vodafone', 'card', 'instapay', 'later'] as const).map((method) => {
+                      const labels = {
+                        vodafone: lang === 'ar' ? text.vodafonePayment : text.vodafonePayment,
+                        card: lang === 'ar' ? text.cardPayment : text.cardPayment,
+                        instapay: lang === 'ar' ? text.instaPayment : text.instaPayment,
+                        later: lang === 'ar' ? text.laterPayment : text.laterPayment,
+                      };
+                      const icons = {
+                        vodafone: '📱',
+                        card: '💳',
+                        instapay: '🏦',
+                        later: '📞',
+                      };
+
+                      return (
+                        <button
+                          key={method}
+                          onClick={() => {
+                            setFormData(p => ({ ...p, paymentMethod: method }));
+                            setErrors(e => ({ ...e, payment: '' }));
+                          }}
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-sm font-semibold flex items-center gap-3 ${
+                            formData.paymentMethod === method
+                              ? 'border-[#C6A04C] bg-[#C6A04C]/10 text-[#C6A04C]'
+                              : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/8'
+                          }`}
+                          style={{ fontFamily: AR(lang) }}
+                        >
+                          <span className="text-xl">{icons[method]}</span>
+                          <span>{labels[method]}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Trust Badge */}
+                  <div className="bg-[#C6A04C]/8 border border-[#C6A04C]/20 rounded-xl p-3 mb-6 text-center">
+                    <p className="text-[#C6A04C] text-xs font-semibold" style={{ fontFamily: AR(lang) }}>
+                      ✅ {text.trustBadge}
+                    </p>
                   </div>
 
                   <div className="flex gap-3">
@@ -526,15 +568,32 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                         {text.paymentMethod}
                       </p>
                       <p className="text-white text-sm">
-                        {text[formData.paymentMethod === 'cash' ? 'cashPayment' : formData.paymentMethod === 'transfer' ? 'bankTransfer' : 'cardPayment']}
+                        {formData.paymentMethod === 'vodafone' ? text.vodafonePayment : formData.paymentMethod === 'card' ? text.cardPayment : formData.paymentMethod === 'instapay' ? text.instaPayment : text.laterPayment}
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-[#A8382A]/15 border border-[#A8382A]/30 rounded-xl p-4 mb-4">
-                    <p className="text-white/70 text-xs mb-2" style={{ fontFamily: AR(lang) }}>{text.support}:</p>
-                    <p className="text-[#C6A04C] font-bold text-sm">{text.supportNumber}</p>
-                    <p className="text-white/50 text-xs mt-2" style={{ fontFamily: AR(lang) }}>{text.ticketDelivery}</p>
+                  <div className="space-y-3 mb-6">
+                    {/* Trust Badge */}
+                    <div className="bg-[#C6A04C]/8 border border-[#C6A04C]/20 rounded-xl p-4 text-center">
+                      <p className="text-[#C6A04C] text-sm font-bold" style={{ fontFamily: AR(lang) }}>
+                        ✅ {text.trustBadge}
+                      </p>
+                      <p className="text-white/50 text-xs mt-1" style={{ fontFamily: AR(lang) }}>
+                        {text.ticketDelivery}
+                      </p>
+                    </div>
+
+                    {/* Support */}
+                    <div className="bg-[#A8382A]/15 border border-[#A8382A]/30 rounded-xl p-4">
+                      <p className="text-white/70 text-xs mb-2 font-semibold" style={{ fontFamily: AR(lang) }}>
+                        📞 {text.support}
+                      </p>
+                      <p className="text-[#C6A04C] font-bold text-sm">{text.supportNumber}</p>
+                      <p className="text-white/40 text-xs mt-2" style={{ fontFamily: AR(lang) }}>
+                        {lang === 'ar' ? 'نحن هنا لمساعدتك في أي استفسار أو شكوى' : 'We are here to help with any questions or complaints'}
+                      </p>
+                    </div>
                   </div>
 
                   <button
