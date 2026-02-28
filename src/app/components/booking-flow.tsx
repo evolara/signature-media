@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, X, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, X, AlertCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AR } from './utils';
 import { Seat } from './seat-layout';
@@ -11,6 +11,32 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// LocalStorage keys
+const STORAGE_PREFIX = 'signature_media_bookings_';
+const getStorageKey = (ticketType: 'vip' | 'classic') => `${STORAGE_PREFIX}${ticketType}`;
+
+// Load booked seats from localStorage
+function loadBookedSeatsFromStorage(ticketType: 'vip' | 'classic'): Set<string> {
+  try {
+    const stored = localStorage.getItem(getStorageKey(ticketType));
+    if (stored) {
+      return new Set(JSON.parse(stored));
+    }
+  } catch (e) {
+    console.error('Error loading booked seats from storage:', e);
+  }
+  return new Set();
+}
+
+// Save booked seats to localStorage
+function saveBookedSeatsToStorage(ticketType: 'vip' | 'classic', seats: Set<string>) {
+  try {
+    localStorage.setItem(getStorageKey(ticketType), JSON.stringify(Array.from(seats)));
+  } catch (e) {
+    console.error('Error saving booked seats to storage:', e);
+  }
+}
 
 interface BookingFlowProps {
   lang: 'ar' | 'en';
@@ -97,21 +123,17 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Fetch booked seats on mount and subscribe to real-time updates
+  // Load booked seats from localStorage on mount
   useEffect(() => {
-    // For now, start with empty booked seats
-    // TODO: Connect to Supabase when credentials are fixed
-    setBookedSeats(new Set());
+    // Load from localStorage (الذاكرة المحلية للجهاز)
+    const stored = loadBookedSeatsFromStorage(selectedTicket);
+    setBookedSeats(stored);
     setLoadingSeats(false);
 
-    // TODO: Subscribe to real-time updates when Supabase is ready
-    // const channel = supabase
-    //   .channel(`booked_seats:${selectedTicket}`)
-    //   ...
-    
-    return () => {
-      // Cleanup: unsubscribe from channel when component unmounts
-    };
+    // Optional: Log for debugging
+    if (stored.size > 0) {
+      console.log(`📍 Loaded ${stored.size} booked seats for ${selectedTicket}`);
+    }
   }, [selectedTicket]);
 
   // Reset seats when quantity changes
@@ -240,9 +262,29 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       ? `🎫 حجز جديد\n\n👤 الاسم: ${formData.name}\n📞 الهاتف: ${formData.phone}\n🎟️ عدد التذاكر: ${formData.quantity}\n💺 المقاعد: ${seatsList}\n🎭 نوع التذكرة: ${text.ticketName}\n💳 طريقة الدفع: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n✅ منصة آمنة وموثوقة\n\n📞 للشكاوي والاستفسارات:\n${text.supportNumber}`
       : `🎫 New Booking\n\n👤 Name: ${formData.name}\n📞 Phone: ${formData.phone}\n🎟️ Quantity: ${formData.quantity}\n💺 Seats: ${seatsList}\n🎭 Ticket: ${text.ticketName}\n💳 Payment Method: ${paymentLabel}\n\n📋 ${text.ticketDelivery}\n\n✅ Safe & Trusted Platform\n\n📞 For complaints and inquiries:\n${text.supportNumber}`;
     
+    // 💾 Save booked seats to localStorage (الحفظ المحلي)
+    const newBookedSeats = selectedSeats.map(s => `${s.row}-${s.number}`);
+    const existing = loadBookedSeatsFromStorage(selectedTicket);
+    const updated = new Set([...existing, ...newBookedSeats]);
+    saveBookedSeatsToStorage(selectedTicket, updated);
+    
+    // Update state to reflect new bookings
+    setBookedSeats(updated);
+    
+    // Open WhatsApp
     const waUrl = `https://wa.me/201015656650?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
-    toast.success(lang === 'ar' ? '✅ تم إرسال البيانات للتأكيد' : '✅ Data sent for confirmation');
+    
+    toast.success(
+      lang === 'ar' 
+        ? `✅ تم حفظ ${newBookedSeats.length} مقاعد وإرسال البيانات` 
+        : `✅ Saved ${newBookedSeats.length} seats and sent data`
+    );
+    
+    // Reset form
+    setFormData({ name: '', phone: '', quantity: 1 });
+    setSelectedSeats([]);
+    setStep(1);
   };
 
   const BackBtn = () => (
@@ -255,6 +297,24 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       {text.back}
     </button>
   );
+
+  // 🧹 Clear booked seats from localStorage
+  const handleClearBookings = () => {
+    const confirmClear = window.confirm(
+      lang === 'ar'
+        ? 'هل تريد مسح جميع الحجوزات المحفوظة؟'
+        : 'Are you sure you want to clear all saved bookings?'
+    );
+    
+    if (confirmClear) {
+      localStorage.removeItem(getStorageKey('vip'));
+      localStorage.removeItem(getStorageKey('classic'));
+      setBookedSeats(new Set());
+      toast.success(
+        lang === 'ar' ? '✅ تم مسح الحجوزات' : '✅ Bookings cleared'
+      );
+    }
+  };
 
   const inputCls = (err?: string) =>
     `w-full bg-[#111] border ${err ? 'border-red-500/50 focus:border-red-500' : 'border-white/8 focus:border-[#C6A04C]/50'} rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:bg-[#161616]`;
@@ -289,13 +349,26 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
           <div className={`h-[2px] w-full bg-gradient-to-r ${isVip ? 'from-[#C6A04C] to-[#A8382A]' : 'from-[#A8382A] to-[#C6A04C]'}`} />
 
           <div className="p-6 sm:p-8">
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 text-white/30 hover:text-white/70 z-10 p-1"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+              {/* Clear bookings button */}
+              <button
+                onClick={handleClearBookings}
+                className="text-white/30 hover:text-red-400/70 p-1 transition-colors"
+                title={lang === 'ar' ? 'مسح الحجوزات المحفوظة' : 'Clear saved bookings'}
+                aria-label="Clear bookings"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+              
+              {/* Close button */}
+              <button
+                onClick={onClose}
+                className="text-white/30 hover:text-white/70 p-1"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             {/* Step indicator */}
             <div className="flex gap-1.5 justify-center mb-6">
