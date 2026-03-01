@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, X, AlertCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Check, X, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { AR } from './utils';
 import { Seat } from './seat-layout';
@@ -103,14 +103,41 @@ async function reserveSeats(seats: Seat[], ticketType: 'vip' | 'classic'): Promi
   }
 }
 
+function CopyNumberBtn({ number, lang }: { number: string; lang: 'ar' | 'en' }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(number);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+        copied
+          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+          : 'bg-[#C6A04C]/15 text-[#C6A04C] border border-[#C6A04C]/30 hover:bg-[#C6A04C]/25'
+      }`}
+      style={{ fontFamily: lang === 'ar' ? 'Cairo, sans-serif' : undefined }}
+    >
+      {copied ? (lang === 'ar' ? '✅ تم النسخ' : '✅ Copied') : (lang === 'ar' ? 'نسخ' : 'Copy')}
+    </button>
+  );
+}
+
 export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>({ name: '', phone: '', quantity: 1 });
+  const [formData, setFormData] = useState<FormData>({ name: '', phone: '', quantity: '' as unknown as number });
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bookingCode] = useState(generateBookingCode);
   const [bookedSeats, setBookedSeats] = useState<Set<string>>(new Set());
   const [loadingSeats, setLoadingSeats] = useState(true);
+  const [showContactModal, setShowContactModal] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
@@ -127,7 +154,15 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
   useEffect(() => {
     // Load from localStorage (الذاكرة المحلية للجهاز)
     const stored = loadBookedSeatsFromStorage(selectedTicket);
-    setBookedSeats(stored);
+
+    // 🔒 Permanently booked seats (hardcoded - لا يمكن حجزها أبداً)
+    const permanentlyBooked: string[] = [];
+    if (selectedTicket === 'classic') {
+      permanentlyBooked.push('A-7'); // A7 Classic محجوز دائماً
+    }
+
+    const merged = new Set([...stored, ...permanentlyBooked]);
+    setBookedSeats(merged);
     setLoadingSeats(false);
 
     // Optional: Log for debugging
@@ -282,7 +317,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     );
     
     // Reset form
-    setFormData({ name: '', phone: '', quantity: 1 });
+    setFormData({ name: '', phone: '', quantity: '' as unknown as number });
     setSelectedSeats([]);
     setStep(1);
   };
@@ -297,24 +332,6 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       {text.back}
     </button>
   );
-
-  // 🧹 Clear booked seats from localStorage
-  const handleClearBookings = () => {
-    const confirmClear = window.confirm(
-      lang === 'ar'
-        ? 'هل تريد مسح جميع الحجوزات المحفوظة؟'
-        : 'Are you sure you want to clear all saved bookings?'
-    );
-    
-    if (confirmClear) {
-      localStorage.removeItem(getStorageKey('vip'));
-      localStorage.removeItem(getStorageKey('classic'));
-      setBookedSeats(new Set());
-      toast.success(
-        lang === 'ar' ? '✅ تم مسح الحجوزات' : '✅ Bookings cleared'
-      );
-    }
-  };
 
   const inputCls = (err?: string) =>
     `w-full bg-[#111] border ${err ? 'border-red-500/50 focus:border-red-500' : 'border-white/8 focus:border-[#C6A04C]/50'} rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:bg-[#161616]`;
@@ -350,16 +367,6 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
           <div className="p-6 sm:p-8">
             <div className="absolute top-4 right-4 flex gap-2 z-10">
-              {/* Clear bookings button */}
-              <button
-                onClick={handleClearBookings}
-                className="text-white/30 hover:text-red-400/70 p-1 transition-colors"
-                title={lang === 'ar' ? 'مسح الحجوزات المحفوظة' : 'Clear saved bookings'}
-                aria-label="Clear bookings"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-              
               {/* Close button */}
               <button
                 onClick={onClose}
@@ -484,13 +491,14 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                       </label>
                       <input
                         ref={quantityRef}
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={formData.quantity}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={formData.quantity === ('' as unknown as number) ? '' : formData.quantity}
                         placeholder={text.quantityPh}
                         onChange={e => {
-                          setFormData(p => ({ ...p, quantity: parseInt(e.target.value) || 1 }));
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setFormData(p => ({ ...p, quantity: val === '' ? '' as unknown as number : parseInt(val) }));
                           setErrors(p => ({ ...p, quantity: '' }));
                         }}
                         className={inputCls(errors.quantity)}
@@ -581,47 +589,79 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                   </p>
 
                   <div className="space-y-3 mb-6">
-                    {(['vodafone', 'card', 'instapay', 'later'] as const).map((method) => {
+                    {(['vodafone', 'instapay', 'later'] as const).map((method) => {
                       const labels = {
                         vodafone: text.vodafonePayment,
-                        card: text.cardPayment,
                         instapay: text.instaPayment,
                         later: text.laterPayment,
                       };
                       const icons = {
                         vodafone: '📱',
-                        card: '💳',
                         instapay: '🏦',
                         later: '📞',
                       };
+                      const PAYMENT_NUMBER = '01011297899';
+                      const isSelected = formData.paymentMethod === method;
+                      const hasNumber = method === 'vodafone' || method === 'instapay';
 
                       return (
-                        <button
-                          key={method}
-                          onClick={() => {
-                            setFormData(p => ({ ...p, paymentMethod: method }));
-                            setErrors(e => ({ ...e, payment: '' }));
-                          }}
-                          className={`w-full p-4 rounded-xl border-2 transition-all text-sm font-semibold flex items-center gap-3 ${
-                            formData.paymentMethod === method
-                              ? 'border-[#C6A04C] bg-[#C6A04C]/10 text-[#C6A04C]'
-                              : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/8'
-                          }`}
-                          style={{ fontFamily: AR(lang) }}
-                        >
-                          <span className="text-xl">{icons[method]}</span>
-                          <span>{labels[method]}</span>
-                        </button>
+                        <div key={method}>
+                          <button
+                            onClick={() => {
+                              if (method === 'later') {
+                                window.location.href = 'tel:+201015656650';
+                                return;
+                              }
+                              setFormData(p => ({ ...p, paymentMethod: method }));
+                              setErrors(e => ({ ...e, payment: '' }));
+                            }}
+                            className={`w-full p-4 rounded-xl border-2 transition-all text-sm font-semibold flex items-center gap-3 ${
+                              isSelected
+                                ? 'border-[#C6A04C] bg-[#C6A04C]/10 text-[#C6A04C]'
+                                : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/8'
+                            }`}
+                            style={{ fontFamily: AR(lang) }}
+                          >
+                            <span className="text-xl">{icons[method]}</span>
+                            <span>{labels[method]}</span>
+                          </button>
+
+                          {/* Number reveal for vodafone & instapay */}
+                          {hasNumber && isSelected && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mt-2 bg-[#111] border border-[#C6A04C]/30 rounded-xl p-3"
+                            >
+                              <p className="text-white/40 text-[10px] mb-2" style={{ fontFamily: AR(lang) }}>
+                                {lang === 'ar' ? '📋 حوّل المبلغ على هذا الرقم ثم أرسل صورة الإيصال عبر الواتساب' : '📋 Transfer to this number then send the receipt via WhatsApp'}
+                              </p>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[#C6A04C] font-mono font-black text-base tracking-widest select-all">
+                                  {PAYMENT_NUMBER}
+                                </span>
+                                <CopyNumberBtn number={PAYMENT_NUMBER} lang={lang} />
+                              </div>
+                            </motion.div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
 
-                  {/* Trust Badge */}
-                  <div className="bg-[#C6A04C]/8 border border-[#C6A04C]/20 rounded-xl p-3 mb-6 text-center">
-                    <p className="text-[#C6A04C] text-xs font-semibold" style={{ fontFamily: AR(lang) }}>
-                      ✅ {text.trustBadge}
+                  {/* Contact CTA Button */}
+                  <button
+                    onClick={() => setShowContactModal(true)}
+                    className="w-full mb-6 bg-gradient-to-r from-[#C6A04C]/20 to-[#A8382A]/20 border border-[#C6A04C]/40 hover:border-[#C6A04C]/70 rounded-xl p-4 transition-all group"
+                    style={{ fontFamily: AR(lang) }}
+                  >
+                    <p className="text-[#C6A04C] font-black text-sm group-hover:scale-105 transition-transform">
+                      ⚡ {lang === 'ar' ? 'تواصل معنا فوراً لتأكيد الحجز' : 'Contact us now to confirm booking'}
                     </p>
-                  </div>
+                    <p className="text-white/40 text-[10px] mt-1">
+                      {lang === 'ar' ? 'واتساب أو اتصال مباشر' : 'WhatsApp or direct call'}
+                    </p>
+                  </button>
 
                   <div className="flex gap-3">
                     <BackBtn />
@@ -634,6 +674,64 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                       {text.next} {lang === 'ar' ? '←' : '→'}
                     </button>
                   </div>
+                </motion.div>
+              )}
+
+              {/* Contact Modal */}
+              {showContactModal && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+                  onClick={() => setShowContactModal(false)}
+                >
+                  <motion.div
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    onClick={e => e.stopPropagation()}
+                    className="bg-[#0D0D0D] border border-[#C6A04C]/30 rounded-2xl p-6 max-w-[320px] w-full"
+                  >
+                    <h3 className="text-white font-black text-lg mb-1 text-center" style={{ fontFamily: AR(lang) }}>
+                      {lang === 'ar' ? '⚡ تواصل سريع' : '⚡ Quick Contact'}
+                    </h3>
+                    <p className="text-white/40 text-xs text-center mb-6" style={{ fontFamily: AR(lang) }}>
+                      {lang === 'ar' ? 'تواصل معنا بعد الحجز مباشرةً للتأكيد' : 'Contact us right after booking to confirm'}
+                    </p>
+                    <div className="space-y-3">
+                      <a
+                        href="https://wa.me/201015656650"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 w-full bg-green-500/15 hover:bg-green-500/25 border border-green-500/30 rounded-xl p-4 transition-all"
+                        style={{ fontFamily: AR(lang) }}
+                      >
+                        <span className="text-2xl">💬</span>
+                        <div className="text-right flex-1">
+                          <p className="text-green-400 font-black text-sm">{lang === 'ar' ? 'واتساب' : 'WhatsApp'}</p>
+                          <p className="text-white/40 text-[10px]">+20 10 15656650</p>
+                        </div>
+                      </a>
+                      <a
+                        href="tel:+201015656650"
+                        className="flex items-center gap-3 w-full bg-[#C6A04C]/10 hover:bg-[#C6A04C]/20 border border-[#C6A04C]/30 rounded-xl p-4 transition-all"
+                        style={{ fontFamily: AR(lang) }}
+                      >
+                        <span className="text-2xl">📞</span>
+                        <div className="text-right flex-1">
+                          <p className="text-[#C6A04C] font-black text-sm">{lang === 'ar' ? 'اتصال مباشر' : 'Direct Call'}</p>
+                          <p className="text-white/40 text-[10px]">+20 10 15656650</p>
+                        </div>
+                      </a>
+                    </div>
+                    <button
+                      onClick={() => setShowContactModal(false)}
+                      className="mt-4 w-full text-white/30 hover:text-white/60 text-xs py-2 transition-colors"
+                      style={{ fontFamily: AR(lang) }}
+                    >
+                      {lang === 'ar' ? 'إغلاق' : 'Close'}
+                    </button>
+                  </motion.div>
                 </motion.div>
               )}
 
