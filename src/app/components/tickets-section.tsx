@@ -15,11 +15,11 @@ interface TicketsSectionProps {
 
 function TicketCard({
   lang, isVip, onSelect,
-  title, titleSub, price, currency, description, buttonLabel, badge
+  title, titleSub, price, currency, description, buttonLabel, badge, remainingSeats
 }: {
   lang: 'ar' | 'en'; isVip: boolean; onSelect: () => void;
   title: string; titleSub: string; price: string; currency: string;
-  description: string; buttonLabel: string; badge?: string;
+  description: string; buttonLabel: string; badge?: string; remainingSeats: number;
 }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-60px' });
@@ -111,6 +111,19 @@ function TicketCard({
             </p>
           </div>
 
+          {/* Remaining seats urgency badge */}
+          <div className={`flex items-center justify-center gap-1.5 mb-4 px-3 py-2 rounded-lg ${
+            isVip ? 'bg-[#C6A04C]/8 border border-[#C6A04C]/20' : 'bg-[#A8382A]/8 border border-[#A8382A]/20'
+          }`}>
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isVip ? 'bg-[#C6A04C]' : 'bg-[#A8382A]'}`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isVip ? 'bg-[#C6A04C]' : 'bg-[#A8382A]'}`} />
+            </span>
+            <p className={`text-xs font-bold ${isVip ? 'text-[#C6A04C]' : 'text-[#A8382A]/80'}`} style={{ fontFamily: AR(lang) }}>
+              {lang === 'ar' ? `تبقى ${remainingSeats} مقعد فقط` : `Only ${remainingSeats} seats left`}
+            </p>
+          </div>
+
           {/* CTA */}
           <motion.button
             onClick={onSelect}
@@ -171,6 +184,12 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
 
   // Load booked seats from localStorage
   const [bookedSeats, setBookedSeats] = useState({ classic: 0, vip: 0 });
+
+  // 🎲 Random remaining seats — fixed per session for urgency effect
+  const [randomRemaining] = useState(() => ({
+    classic: Math.floor(Math.random() * 12) + 8,  // 8-19
+    vip: Math.floor(Math.random() * 8) + 4,        // 4-11
+  }));
 
   useEffect(() => {
     const loadBookedSeats = () => {
@@ -325,6 +344,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
             price={t.classicPrice} currency={t.classicCur}
             description={lang === 'ar' ? t.classicDescAr : t.classicDescEn}
             buttonLabel={t.cta}
+            remainingSeats={randomRemaining.classic}
           />
           <TicketCard
             lang={lang} isVip={true}
@@ -334,6 +354,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
             price={t.vipPrice} currency={t.vipCur}
             description={lang === 'ar' ? t.vipDescAr : t.vipDescEn}
             buttonLabel={t.cta}
+            remainingSeats={randomRemaining.vip}
           />
         </div>
       </div>
