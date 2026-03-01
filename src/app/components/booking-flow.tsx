@@ -159,6 +159,8 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     const permanentlyBooked: string[] = [];
     if (selectedTicket === 'classic') {
       permanentlyBooked.push('A-7'); // A7 Classic محجوز دائماً
+      permanentlyBooked.push('B-5'); // B5 Classic محجوز دائماً
+      permanentlyBooked.push('B-6'); // B6 Classic محجوز دائماً
     }
 
     const merged = new Set([...stored, ...permanentlyBooked]);
