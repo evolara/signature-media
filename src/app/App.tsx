@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
+import { Analytics } from '@vercel/analytics/react';
 import { HeroSection } from './components/hero-section';
 import { TicketsSection } from './components/tickets-section';
 import { OrganizerSection } from './components/organizer-section';
@@ -63,6 +64,7 @@ export default function App() {
       {showBookingFlow && selectedTicket && (
         <BookingFlow lang={lang} selectedTicket={selectedTicket} onClose={handleClose} />
       )}
+      <Analytics />
     </div>
   );
 }
