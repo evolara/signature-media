@@ -1,9 +1,10 @@
 import { motion, useInView } from 'motion/react';
 import { useRef, useState, useEffect } from 'react';
-import { Sparkles, Music2, Star } from 'lucide-react';
+import { Sparkles, Music2, Star, Armchair } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 import { AR } from './utils';
 import { CounterBadge } from './counter-badge';
+import { seatLayout } from './seat-layout';
 
 interface TicketsSectionProps {
   lang: 'ar' | 'en';
@@ -14,11 +15,11 @@ interface TicketsSectionProps {
 
 function TicketCard({
   lang, isVip, onSelect,
-  title, titleSub, price, currency, description, buttonLabel, badge
+  title, titleSub, price, currency, description, buttonLabel, badge, totalSeats
 }: {
   lang: 'ar' | 'en'; isVip: boolean; onSelect: () => void;
   title: string; titleSub: string; price: string; currency: string;
-  description: string; buttonLabel: string; badge?: string;
+  description: string; buttonLabel: string; badge?: string; totalSeats: number;
 }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-60px' });
@@ -99,6 +100,21 @@ function TicketCard({
             </div>
           </div>
 
+          {/* Seats Counter */}
+          <div className="text-center mb-8">
+            <div className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border ${
+              isVip 
+                ? 'bg-[#C6A04C]/8 border-[#C6A04C]/25' 
+                : 'bg-[#A8382A]/8 border-[#A8382A]/25'
+            }`}>
+              <Armchair className={`w-4 h-4 ${isVip ? 'text-[#C6A04C]' : 'text-[#A8382A]'}`} />
+              <span className="text-white font-bold text-sm">{totalSeats}</span>
+              <span className={`text-xs font-semibold ${isVip ? 'text-[#C6A04C]' : 'text-[#A8382A]'}`} style={{ fontFamily: AR(lang) }}>
+                {lang === 'ar' ? 'كرسي متاح' : 'Seats Available'}
+              </span>
+            </div>
+          </div>
+
           {/* Description */}
           <div className="flex items-start gap-2 mb-8" style={{ fontFamily: AR(lang) }}>
             <Star
@@ -132,6 +148,10 @@ function TicketCard({
 export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
+
+  // Calculate total seats for each ticket type
+  const vipSeats = Object.values(seatLayout.vip).reduce((a, b) => a + b, 0);
+  const classicSeats = Object.values(seatLayout.classic).reduce((a, b) => a + b, 0);
 
   const t = {
     ar: {
@@ -270,6 +290,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
             price={t.classicPrice} currency={t.classicCur}
             description={lang === 'ar' ? t.classicDescAr : t.classicDescEn}
             buttonLabel={t.cta}
+            totalSeats={classicSeats}
           />
           <TicketCard
             lang={lang} isVip={true}
@@ -279,6 +300,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
             price={t.vipPrice} currency={t.vipCur}
             description={lang === 'ar' ? t.vipDescAr : t.vipDescEn}
             buttonLabel={t.cta}
+            totalSeats={vipSeats}
           />
         </div>
       </div>
