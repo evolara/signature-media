@@ -1,9 +1,10 @@
 import { motion, useInView } from 'motion/react';
 import { useRef, useState, useEffect } from 'react';
-import { Sparkles, Music2, Star } from 'lucide-react';
+import { Sparkles, Music2, Star, Armchair } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 import { AR } from './utils';
 import { CounterBadge } from './counter-badge';
+import { seatLayout } from './seat-layout';
 
 interface TicketsSectionProps {
   lang: 'ar' | 'en';
@@ -137,6 +138,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
     ar: {
       heading: 'التذاكر',
       subheading: 'تذاكر أمسية خامس ليالي عيد الفطر المبارك',
+      seatsAvailable: 'المقاعد المتاحة',
       classicTitle: 'Classic', classicSub: 'كلاسيك',
       classicBadge: 'حضور راقٍ',
       classicPrice: '350', classicCur: 'جنيه',
@@ -150,6 +152,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
     en: {
       heading: 'Tickets',
       subheading: 'Ticket for the fifth evening of Eid al-Fitr',
+      seatsAvailable: 'Available Seats',
       classicDescEn: 'An elegant admission to a distinguished evening of authentic Arabic music, offering a refined atmosphere and a professionally curated experience.',
       vipDescEn: 'A more exclusive and distinguished attendance experience, crafted for guests who appreciate a refined and elevated musical atmosphere.',
       classicTitle: 'Classic', classicSub: 'كلاسيك',
@@ -161,6 +164,39 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
       cta: 'Book Now',
     },
   }[lang];
+
+  // Calculate total seats for each type
+  const totalClassicSeats = Object.values(seatLayout.classic).reduce((a, b) => a + b, 0);
+  const totalVipSeats = Object.values(seatLayout.vip).reduce((a, b) => a + b, 0);
+
+  // Load booked seats from localStorage
+  const [bookedSeats, setBookedSeats] = useState({ classic: 0, vip: 0 });
+
+  useEffect(() => {
+    const loadBookedSeats = () => {
+      try {
+        const classicStored = localStorage.getItem('signature_media_bookings_classic');
+        const vipStored = localStorage.getItem('signature_media_bookings_vip');
+        
+        const classicCount = classicStored ? JSON.parse(classicStored).length : 0;
+        const vipCount = vipStored ? JSON.parse(vipStored).length : 0;
+        
+        setBookedSeats({ classic: classicCount, vip: vipCount });
+      } catch (e) {
+        console.error('Error loading booked seats:', e);
+      }
+    };
+    
+    loadBookedSeats();
+    
+    // Listen for storage changes
+    const handleStorageChange = () => loadBookedSeats();
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const availableClassic = totalClassicSeats - bookedSeats.classic;
+  const availableVip = totalVipSeats - bookedSeats.vip;
 
   const [countdown, setCountdown] = useState({ days: '0', hours: '00', minutes: '00', seconds: '00' });
 
@@ -242,21 +278,40 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
           <div className="h-px max-w-xs mx-auto bg-gradient-to-r from-transparent via-[#C6A04C]/40 to-transparent" />
         </motion.div>
 
-        {/* Countdown bar */}
+        {/* Seats availability bar */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={inView ? { opacity: 1, scale: 1 } : {}}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="flex items-center justify-center gap-0 mb-14"
+          className="flex items-center justify-center gap-8 mb-14 flex-wrap"
         >
-          <div className="flex items-stretch bg-white/[0.03] border border-[#C6A04C]/12 rounded-2xl overflow-hidden divide-x divide-[#C6A04C]/10" dir="ltr">
-            <CounterBadge label={lang === 'ar' ? 'أيام' : 'Days'} value={countdown.days} lang={lang} />
-            <div className="w-px bg-[#C6A04C]/10" />
-            <CounterBadge label={lang === 'ar' ? 'ساعات' : 'Hours'} value={countdown.hours} lang={lang} />
-            <div className="w-px bg-[#C6A04C]/10" />
-            <CounterBadge label={lang === 'ar' ? 'دقائق' : 'Minutes'} value={countdown.minutes} lang={lang} />
-            <div className="w-px bg-[#C6A04C]/10" />
-            <CounterBadge label={lang === 'ar' ? 'ثواني' : 'Seconds'} value={countdown.seconds} lang={lang} />
+          {/* VIP Seats */}
+          <div className="flex items-center gap-3 bg-gradient-to-r from-[#C6A04C]/10 to-[#A8382A]/10 border border-[#C6A04C]/30 rounded-xl px-5 py-3">
+            <Armchair className="w-5 h-5 text-[#C6A04C]" />
+            <div className="text-center">
+              <p className="text-[10px] uppercase tracking-widest text-white/50" style={{ fontFamily: AR(lang) }}>
+                VIP
+              </p>
+              <p className="text-lg font-black text-[#C6A04C] tabular-nums">
+                {availableVip} <span className="text-white/40 text-xs">/ {totalVipSeats}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Separator */}
+          <div className="h-8 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+
+          {/* Classic Seats */}
+          <div className="flex items-center gap-3 bg-gradient-to-r from-[#A8382A]/10 to-[#C6A04C]/10 border border-[#A8382A]/30 rounded-xl px-5 py-3">
+            <Armchair className="w-5 h-5 text-[#A8382A]/70" />
+            <div className="text-center">
+              <p className="text-[10px] uppercase tracking-widest text-white/50" style={{ fontFamily: AR(lang) }}>
+                {lang === 'ar' ? 'كلاسيك' : 'Classic'}
+              </p>
+              <p className="text-lg font-black text-white tabular-nums">
+                {availableClassic} <span className="text-white/40 text-xs">/ {totalClassicSeats}</span>
+              </p>
+            </div>
           </div>
         </motion.div>
 
