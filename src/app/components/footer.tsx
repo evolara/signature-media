@@ -1,7 +1,7 @@
 import { motion, useInView } from 'motion/react';
 import { useRef } from 'react';
 import { AR } from './utils';
-import { Globe } from 'lucide-react';
+import { Globe, Code2 } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 
 interface FooterProps {
@@ -9,27 +9,29 @@ interface FooterProps {
   onLanguageToggle: () => void;
 }
 
-
 export function Footer({ lang, onLanguageToggle }: FooterProps) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
 
-  const t = {
-    ar: {
-      tagline: 'موسيقى الروح، لروح الموسيقى',
-      switchLabel: 'English',
-      date: 'الجمعة ٢٠ مارس ٢٠٢٦',
-      location: 'القاهرة، مصر',
-      copyright: '© ٢٠٢٦ روح الطرب — جميع الحقوق محفوظة',
-    },
-    en: {
-      tagline: 'Music of the soul, for the soul of music',
-      switchLabel: 'العربية',
-      date: 'Friday, March 20, 2026',
-      location: 'Cairo, Egypt',
-      copyright: '© 2026 Rooh Al-Tarab — All Rights Reserved',
-    },
-  }[lang];
+  const t = lang === 'ar'
+    ? {
+        tagline:     'موسيقى الروح، لروح الموسيقى',
+        switchLabel: 'English',
+        // ✅ تاريخ صحيح: الخميس ٢٦ مارس ٢٠٢٦
+        date:        'الخميس ٢٦ مارس ٢٠٢٦',
+        location:    'القاهرة، مصر',
+        copyright:   '© ٢٠٢٦ روح الطرب — جميع الحقوق محفوظة',
+        devLabel:    'تصميم وتطوير',
+      }
+    : {
+        tagline:     'Music of the soul, for the soul of music',
+        switchLabel: 'العربية',
+        // ✅ Correct date: Thursday, March 26, 2026
+        date:        'Thursday, March 26, 2026',
+        location:    'Cairo, Egypt',
+        copyright:   '© 2026 Rooh Al-Tarab — All Rights Reserved',
+        devLabel:    'Designed & Developed by',
+      };
 
   return (
     <footer
@@ -101,7 +103,23 @@ export function Footer({ lang, onLanguageToggle }: FooterProps) {
         </div>
 
         {/* Copyright */}
-        <p className="text-white/15 text-xs" style={{ fontFamily: AR(lang) }}>{t.copyright}</p>
+        <p className="text-white/15 text-xs mb-6" style={{ fontFamily: AR(lang) }}>{t.copyright}</p>
+
+        {/* ── Developer credit ── */}
+        <div className="flex items-center justify-center gap-2">
+          <Code2 className="w-3 h-3 text-white/15" />
+          <p className="text-white/15 text-[11px]" style={{ fontFamily: AR(lang) }}>
+            {t.devLabel}{' '}
+            <a
+              href="https://github.com/aelzyat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#C6A04C]/40 hover:text-[#C6A04C]/70 transition-colors duration-300 font-semibold"
+            >
+              aelzyat
+            </a>
+          </p>
+        </div>
       </motion.div>
     </footer>
   );
