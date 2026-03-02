@@ -111,19 +111,6 @@ function TicketCard({
             </p>
           </div>
 
-          {/* Remaining seats urgency badge */}
-          <div className={`flex items-center justify-center gap-1.5 mb-4 px-3 py-2 rounded-lg ${
-            isVip ? 'bg-[#C6A04C]/8 border border-[#C6A04C]/20' : 'bg-[#A8382A]/8 border border-[#A8382A]/20'
-          }`}>
-            <span className="relative flex h-2 w-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isVip ? 'bg-[#C6A04C]' : 'bg-[#A8382A]'}`} />
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${isVip ? 'bg-[#C6A04C]' : 'bg-[#A8382A]'}`} />
-            </span>
-            <p className={`text-xs font-bold ${isVip ? 'text-[#C6A04C]' : 'text-[#A8382A]/80'}`} style={{ fontFamily: AR(lang) }}>
-              {lang === 'ar' ? `تبقى ${remainingSeats} مقعد فقط` : `Only ${remainingSeats} seats left`}
-            </p>
-          </div>
-
           {/* CTA */}
           <motion.button
             onClick={onSelect}
@@ -178,44 +165,11 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
     },
   }[lang];
 
-  // Calculate total seats for each type
-  const totalClassicSeats = Object.values(seatLayout.classic).reduce((a, b) => a + b, 0);
-  const totalVipSeats = Object.values(seatLayout.vip).reduce((a, b) => a + b, 0);
-
-  // Load booked seats from localStorage
-  const [bookedSeats, setBookedSeats] = useState({ classic: 0, vip: 0 });
-
   // 🎲 Random remaining seats — fixed per session for urgency effect
   const [randomRemaining] = useState(() => ({
     classic: Math.floor(Math.random() * 12) + 8,  // 8-19
     vip: Math.floor(Math.random() * 8) + 4,        // 4-11
   }));
-
-  useEffect(() => {
-    const loadBookedSeats = () => {
-      try {
-        const classicStored = localStorage.getItem('signature_media_bookings_classic');
-        const vipStored = localStorage.getItem('signature_media_bookings_vip');
-        
-        const classicCount = classicStored ? JSON.parse(classicStored).length : 0;
-        const vipCount = vipStored ? JSON.parse(vipStored).length : 0;
-        
-        setBookedSeats({ classic: classicCount, vip: vipCount });
-      } catch (e) {
-        console.error('Error loading booked seats:', e);
-      }
-    };
-    
-    loadBookedSeats();
-    
-    // Listen for storage changes
-    const handleStorageChange = () => loadBookedSeats();
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  const availableClassic = totalClassicSeats - bookedSeats.classic;
-  const availableVip = totalVipSeats - bookedSeats.vip;
 
   const [countdown, setCountdown] = useState({ days: '0', hours: '00', minutes: '00', seconds: '00' });
 
@@ -295,43 +249,6 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
             {t.subheading}
           </h2>
           <div className="h-px max-w-xs mx-auto bg-gradient-to-r from-transparent via-[#C6A04C]/40 to-transparent" />
-        </motion.div>
-
-        {/* Seats availability bar */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={inView ? { opacity: 1, scale: 1 } : {}}
-          transition={{ duration: 0.7, delay: 0.2 }}
-          className="flex items-center justify-center gap-8 mb-14 flex-wrap"
-        >
-          {/* VIP Seats */}
-          <div className="flex items-center gap-3 bg-gradient-to-r from-[#C6A04C]/10 to-[#A8382A]/10 border border-[#C6A04C]/30 rounded-xl px-5 py-3">
-            <Armchair className="w-5 h-5 text-[#C6A04C]" />
-            <div className="text-center">
-              <p className="text-[10px] uppercase tracking-widest text-white/50" style={{ fontFamily: AR(lang) }}>
-                VIP
-              </p>
-              <p className="text-lg font-black text-[#C6A04C] tabular-nums">
-                {availableVip} <span className="text-white/40 text-xs">/ {totalVipSeats}</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Separator */}
-          <div className="h-8 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
-
-          {/* Classic Seats */}
-          <div className="flex items-center gap-3 bg-gradient-to-r from-[#A8382A]/10 to-[#C6A04C]/10 border border-[#A8382A]/30 rounded-xl px-5 py-3">
-            <Armchair className="w-5 h-5 text-[#A8382A]/70" />
-            <div className="text-center">
-              <p className="text-[10px] uppercase tracking-widest text-white/50" style={{ fontFamily: AR(lang) }}>
-                {lang === 'ar' ? 'كلاسيك' : 'Classic'}
-              </p>
-              <p className="text-lg font-black text-white tabular-nums">
-                {availableClassic} <span className="text-white/40 text-xs">/ {totalClassicSeats}</span>
-              </p>
-            </div>
-          </div>
         </motion.div>
 
         {/* Cards */}
