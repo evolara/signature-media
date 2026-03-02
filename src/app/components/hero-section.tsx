@@ -1,37 +1,51 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useMemo } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'motion/react';
 import logoImage from '@/assets/logo.png';
 import { AR } from './utils';
 import { CounterBadge } from './counter-badge';
+import { useCountdown } from './use-countdown';
 
 interface HeroSectionProps {
   lang: 'ar' | 'en';
   onBookNowClick: () => void;
 }
 
-// Animated particle dots in background
+// ✅ Particle data computed once at module level — no Math.random() on re-render
+const PARTICLE_DATA = Array.from({ length: 12 }, (_, i) => ({
+  // Use index-based deterministic seed for stable SSR-safe values
+  size:     (((i * 7 + 3) % 5) / 5) * 3 + 1,           // 1–4px
+  left:     (((i * 13 + 5) % 97)),                       // 0–97%
+  top:      (((i * 17 + 11) % 93)),                      // 0–93%
+  opacity:  (((i * 11 + 2) % 6) / 10) + 0.05,           // 0.05–0.65
+  yRange:   20 + ((i * 9 + 1) % 40),                    // 20–60px
+  duration: 4 + ((i * 6 + 3) % 6),                      // 4–10s
+  delay:    ((i * 5 + 2) % 8) * 0.5,                    // 0–4s
+}));
+
+// ✅ 12 particles (down from 24) with stable data — no flickering, better perf
 function Particles() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      {Array.from({ length: 24 }).map((_, i) => (
+      {PARTICLE_DATA.map((p, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full bg-[#C6A04C]"
           style={{
-            width: Math.random() * 3 + 1,
-            height: Math.random() * 3 + 1,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            opacity: Math.random() * 0.3 + 0.05,
+            width: p.size,
+            height: p.size,
+            left: `${p.left}%`,
+            top: `${p.top}%`,
+            opacity: p.opacity,
+            willChange: 'transform',
           }}
           animate={{
-            y: [0, -(20 + Math.random() * 40), 0],
-            opacity: [0.05, 0.25, 0.05],
+            y: [0, -p.yRange, 0],
+            opacity: [p.opacity * 0.3, p.opacity, p.opacity * 0.3],
           }}
           transition={{
-            duration: 4 + Math.random() * 6,
+            duration: p.duration,
             repeat: Infinity,
-            delay: Math.random() * 4,
+            delay: p.delay,
             ease: 'easeInOut',
           }}
         />
@@ -40,64 +54,45 @@ function Particles() {
   );
 }
 
+// ✅ Stable event date — defined once outside component
+const EVENT_DATE = new Date('2026-03-26T20:00:00');
+
 export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
   const containerRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end start'] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '25%']);
+  const imgY    = useTransform(scrollYProgress, [0, 1], ['0%', '25%']);
   const contentY = useTransform(scrollYProgress, [0, 1], ['0%', '12%']);
-  const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const springY = useSpring(imgY, { stiffness: 80, damping: 20 });
+  const opacity  = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const springY  = useSpring(imgY, { stiffness: 80, damping: 20 });
 
-  const t = {
-    ar: {
-      date: '',
-      dateSub: '',
-      eid: 'اليوم الخامس من عيد الفطر المبارك',
-      tagline: 'حضور راقٍ لليلة طربية استثنائية',
-      sub: 'في أجواء تحمل روح الأصالة والتنظيم الاحترافي',
-      cta: 'احجز تذكرتك الآن',
-      scroll: 'اكتشف التذاكر',
-    },
-    en: {
-      date: '',
-      dateSub: '',
-      eid: '5th Day of Eid',
-      tagline: 'An Elegant Evening of Authentic Arabic Music',
-      sub: 'A refined atmosphere, professionally curated for those who appreciate the finest',
-      cta: 'Book Your Ticket Now',
-      scroll: 'Explore Tickets',
-    },
-  }[lang];
+  // ✅ Single shared hook — no duplicate countdown logic
+  const countdown = useCountdown(EVENT_DATE);
 
-  const [countdown, setCountdown] = useState({ days: '0', hours: '00', minutes: '00', seconds: '00' });
-
-  useEffect(() => {
-    const target = new Date('2026-03-26T20:00:00');
-    const update = () => {
-      const now = new Date();
-      let diff = target.getTime() - now.getTime();
-      if (diff <= 0) {
-        setCountdown({ days: '0', hours: '00', minutes: '00', seconds: '00' });
-        return;
+  const t = lang === 'ar'
+    ? {
+        eid:      'اليوم الخامس من عيد الفطر المبارك',
+        tagline:  'حضور راقٍ لليلة طربية استثنائية',
+        sub:      'في أجواء تحمل روح الأصالة والتنظيم الاحترافي',
+        // ✅ Venue info added
+        venue:    'دار الأوبرا المصرية — القاهرة',
+        dateStr:  'الخميس ٢٦ مارس ٢٠٢٦  |  ٨ مساءً',
+        cta:      'احجز تذكرتك الآن',
+        scroll:   'اكتشف التذاكر',
+        days:     'أيام', hours: 'ساعات', minutes: 'دقائق', seconds: 'ثواني',
+        until:    'حتى انطلاق الحفل',
       }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      diff -= days * (1000 * 60 * 60 * 24);
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      diff -= hours * (1000 * 60 * 60);
-      const minutes = Math.floor(diff / (1000 * 60));
-      diff -= minutes * (1000 * 60);
-      const seconds = Math.floor(diff / 1000);
-      setCountdown({
-        days: `${days}`,
-        hours: String(hours).padStart(2, '0'),
-        minutes: String(minutes).padStart(2, '0'),
-        seconds: String(seconds).padStart(2, '0'),
-      });
-    };
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [lang]);
+    : {
+        eid:      '5th Day of Eid al-Fitr',
+        tagline:  'An Elegant Evening of Authentic Arabic Music',
+        sub:      'A refined atmosphere, professionally curated for those who appreciate the finest',
+        // ✅ Venue info added
+        venue:    'Cairo Opera House — Cairo',
+        dateStr:  'Thursday, 26 March 2026  |  8 PM',
+        cta:      'Book Your Ticket Now',
+        scroll:   'Explore Tickets',
+        days:     'Days', hours: 'Hours', minutes: 'Minutes', seconds: 'Seconds',
+        until:    'Until the concert begins',
+      };
 
   return (
     <section
@@ -105,7 +100,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
       className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center"
       aria-label={lang === 'ar' ? 'القسم الرئيسي' : 'Hero'}
     >
-      {/* Parallax Background */}
+      {/* Parallax background */}
       <motion.div className="absolute inset-0 scale-110" style={{ y: springY }}>
         <img
           src="/7461e7ec73104148c3673b779c060afe.jpeg"
@@ -116,12 +111,12 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
         />
       </motion.div>
 
-      {/* Layered gradients */}
+      {/* Gradients */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#080808]/50 via-[#080808]/40 to-[#080808]" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#080808]/50 via-transparent to-[#080808]/50" />
       <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#080808] to-transparent" />
 
-      {/* Grain texture overlay */}
+      {/* Grain */}
       <div
         className="absolute inset-0 opacity-[0.06] pointer-events-none"
         style={{
@@ -133,7 +128,6 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
 
       <Particles />
 
-      {/* Horizontal line accents */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C6A04C]/30 to-transparent" aria-hidden="true" />
 
       {/* Content */}
@@ -149,10 +143,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
           className="flex items-center justify-center gap-3 mb-10"
         >
           <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#C6A04C]/60" />
-          <span
-            className="text-[#C6A04C] text-xs tracking-[0.3em] uppercase font-medium"
-            style={{ fontFamily: AR(lang) }}
-          >
+          <span className="text-[#C6A04C] text-xs tracking-[0.3em] uppercase font-medium" style={{ fontFamily: AR(lang) }}>
             {t.eid}
           </span>
           <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#C6A04C]/60" />
@@ -171,7 +162,6 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
             <div className="relative w-52 h-52 sm:w-64 sm:h-64 rounded-full overflow-hidden shadow-[0_0_80px_rgba(198,160,76,0.2)] border border-[#C6A04C]/20">
               <img src={logoImage} alt="روح الطرب" className="w-full h-full object-cover" />
             </div>
-            {/* Rotating ring */}
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
@@ -194,54 +184,55 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
             {t.tagline}
           </h1>
           <p
-            className="text-base sm:text-lg text-white/50 mb-10 max-w-xl mx-auto leading-relaxed"
+            className="text-base sm:text-lg text-white/50 mb-6 max-w-xl mx-auto leading-relaxed"
             style={{ fontFamily: AR(lang) }}
           >
             {t.sub}
           </p>
+
+          {/* ✅ Venue + date pill — new addition */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.55 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-10"
+          >
+            <span
+              className="inline-flex items-center gap-2 text-xs sm:text-sm text-white/60 bg-white/[0.05] border border-white/10 px-4 py-2 rounded-full"
+              style={{ fontFamily: AR(lang) }}
+            >
+              📍 {t.venue}
+            </span>
+            <span
+              className="inline-flex items-center gap-2 text-xs sm:text-sm text-[#C6A04C]/80 bg-[#C6A04C]/[0.07] border border-[#C6A04C]/20 px-4 py-2 rounded-full"
+              style={{ fontFamily: AR(lang) }}
+            >
+              🗓 {t.dateStr}
+            </span>
+          </motion.div>
         </motion.div>
 
-        {/* Countdown badges */}
+        {/* Countdown */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mb-12"
+          aria-live="polite"
+          aria-label={t.until}
         >
           <div className="inline-flex flex-wrap items-center justify-center gap-4 px-6 py-4 rounded-2xl bg-white/[0.04] border border-[#C6A04C]/15 backdrop-blur-sm">
-            <CounterBadge
-              label={lang === 'ar' ? 'أيام' : 'Days'}
-              value={countdown.days}
-              lang={lang}
-            />
-            <CounterBadge
-              label={lang === 'ar' ? 'ساعات' : 'Hours'}
-              value={countdown.hours}
-              lang={lang}
-            />
-            <CounterBadge
-              label={lang === 'ar' ? 'دقائق' : 'Minutes'}
-              value={countdown.minutes}
-              lang={lang}
-            />
-            <CounterBadge
-              label={lang === 'ar' ? 'ثواني' : 'Seconds'}
-              value={countdown.seconds}
-              lang={lang}
-            />
+            <CounterBadge label={t.days}    value={countdown.days}    lang={lang} />
+            <CounterBadge label={t.hours}   value={countdown.hours}   lang={lang} />
+            <CounterBadge label={t.minutes} value={countdown.minutes} lang={lang} />
+            <CounterBadge label={t.seconds} value={countdown.seconds} lang={lang} />
           </div>
-          <p
-            className="mt-2 text-sm text-white/40"
-            style={{
-              fontFamily:
-                lang === 'ar' ? "'Cormorant Garamond', serif" : 'Cairo, sans-serif',
-            }}
-          >
-            {lang === 'ar' ? 'حتى 26-3-2026 8م' : 'until 26-3-2026 8pm'}
+          <p className="mt-2 text-sm text-white/40" style={{ fontFamily: AR(lang) }}>
+            {t.until}
           </p>
         </motion.div>
 
-        {/* CTA */}
+        {/* CTA — aria-label removed to avoid duplication with inner text */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -253,9 +244,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
             className="relative group"
-            aria-label={t.cta}
           >
-            {/* Glow pulse */}
             <motion.span
               animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.05, 1] }}
               transition={{ duration: 2.5, repeat: Infinity }}
@@ -271,7 +260,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
           </motion.button>
         </motion.div>
 
-        {/* Musical notes decoration */}
+        {/* Musical notes */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -299,7 +288,10 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
         transition={{ delay: 1.5 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 cursor-pointer"
         onClick={onBookNowClick}
+        role="button"
         aria-label={t.scroll}
+        tabIndex={0}
+        onKeyDown={e => e.key === 'Enter' && onBookNowClick()}
       >
         <span className="text-white/25 text-xs tracking-[0.2em] uppercase" style={{ fontFamily: AR(lang) }}>
           {t.scroll}
