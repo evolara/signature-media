@@ -1,6 +1,7 @@
 import { motion, useInView } from 'motion/react';
 import { useRef } from 'react';
 import { Mic2, Radio, Headphones, ShieldCheck } from 'lucide-react';
+import { AR } from './utils';
 import smLogo from '@/assets/sm-logo.png';
 import smInstagram from '@/assets/sm-instagram.png';
 import smGlass from '@/assets/sm-glass.png';
@@ -8,8 +9,6 @@ import smGlass from '@/assets/sm-glass.png';
 interface OrganizerSectionProps {
   lang: 'ar' | 'en';
 }
-
-import { AR } from './utils';
 
 const TRUST_ICONS = [
   { icon: Mic2,        key: 'audio' },
@@ -22,40 +21,50 @@ export function OrganizerSection({ lang }: OrganizerSectionProps) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
-  const t = {
-    ar: {
-      overline: 'الجهة المنظِّمة',
-      heading: 'Signature Media',
-      subheading: 'وراء كل تجربة استثنائية… فريق استثنائي',
-      body: 'Signature Media هي شركة متخصصة في الإنتاج الصوتي، البودكاست، وخدمات الميديا الاحترافية. بخبرة ممتدة في تنظيم الفعاليات الموسيقية الراقية، تضمن لك تجربة حضور مُصممة بعناية — من أول لحظة حتى آخر نوتة.',
-      pillars: [
-        { label: 'إنتاج صوتي', desc: 'جودة صوتية احترافية' },
-        { label: 'بودكاست', desc: 'محتوى مرئي ومسموع' },
-        { label: 'خدمات ميديا', desc: 'إنتاج متكامل' },
-        { label: 'موثوقية تامة', desc: 'فريق محترف ومنظَّم' },
-      ],
-      instagramLabel: 'تابعونا على إنستغرام',
-      instagramHandle: '@SignatureMedia',
-      quote: '"نحن لا ننظِّم حفلات فقط — نصنع ذكريات."',
-      badge: 'المنظِّم الرسمي للحفل',
-    },
-    en: {
-      overline: 'Official Organizer',
-      heading: 'Signature Media',
-      subheading: 'Behind every extraordinary experience — an extraordinary team',
-      body: 'Signature Media is a specialized company in audio production, podcasting, and professional media services. With extensive experience organizing premium musical events, they ensure a meticulously crafted attendance experience — from the very first moment to the last note.',
-      pillars: [
-        { label: 'Audio Production', desc: 'Studio-grade quality' },
-        { label: 'Podcast', desc: 'Visual & audio content' },
-        { label: 'Media Services', desc: 'Full-scale production' },
-        { label: 'Full Trust', desc: 'Professional & organized' },
-      ],
-      instagramLabel: 'Follow us on Instagram',
-      instagramHandle: '@SignatureMedia',
-      quote: '"We don\'t just organize concerts — we create memories."',
-      badge: 'Official Concert Organizer',
-    },
-  }[lang];
+  const isRtl = lang === 'ar';
+
+  const t = isRtl
+    ? {
+        overline: 'الجهة المنظِّمة',
+        heading: 'Signature Media',
+        subheading: 'وراء كل تجربة استثنائية… فريق استثنائي',
+        body: 'Signature Media هي شركة متخصصة في الإنتاج الصوتي، البودكاست، وخدمات الميديا الاحترافية. بخبرة ممتدة في تنظيم الفعاليات الموسيقية الراقية، تضمن لك تجربة حضور مُصممة بعناية — من أول لحظة حتى آخر نوتة.',
+        pillars: [
+          { label: 'إنتاج صوتي',   desc: 'جودة صوتية احترافية' },
+          { label: 'بودكاست',      desc: 'محتوى مرئي ومسموع' },
+          { label: 'خدمات ميديا', desc: 'إنتاج متكامل' },
+          { label: 'موثوقية تامة', desc: 'فريق محترف ومنظَّم' },
+        ],
+        instagramLabel: 'تابعونا على إنستغرام',
+        instagramHandle: '@SignatureMedia',
+        quote: '"نحن لا ننظِّم حفلات فقط — نصنع ذكريات."',
+        badge: 'المنظِّم الرسمي للحفل',
+      }
+    : {
+        overline: 'Official Organizer',
+        heading: 'Signature Media',
+        subheading: 'Behind every extraordinary experience — an extraordinary team',
+        body: 'Signature Media is a specialized company in audio production, podcasting, and professional media services. With extensive experience organizing premium musical events, they ensure a meticulously crafted attendance experience — from the very first moment to the last note.',
+        pillars: [
+          { label: 'Audio Production', desc: 'Studio-grade quality' },
+          { label: 'Podcast',          desc: 'Visual & audio content' },
+          { label: 'Media Services',   desc: 'Full-scale production' },
+          { label: 'Full Trust',       desc: 'Professional & organized' },
+        ],
+        instagramLabel: 'Follow us on Instagram',
+        instagramHandle: '@SignatureMedia',
+        quote: '"We don\'t just organize concerts — we create memories."',
+        badge: 'Official Concert Organizer',
+      };
+
+  // ✅ Blockquote border direction computed once — no inline style overrides
+  const quoteClass = isRtl
+    ? 'border-r-2 border-[#1a6aaa]/50 pr-5'
+    : 'border-l-2 border-[#1a6aaa]/50 pl-5';
+
+  // ✅ Animation direction: images come from the outer edge, text from the inner edge
+  const imagesX = isRtl ? 40 : -40;
+  const textX   = isRtl ? -40 : 40;
 
   return (
     <section
@@ -63,23 +72,22 @@ export function OrganizerSection({ lang }: OrganizerSectionProps) {
       className="relative py-28 px-4 overflow-hidden"
       aria-labelledby="organizer-heading"
     >
-      {/* Dark bg with blue-tinted gradient to echo SM brand */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#080808] via-[#090c12] to-[#080808]" />
 
-      {/* Subtle blue glow top-center */}
+      {/* Blue glow */}
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-64 opacity-10"
         style={{ background: 'radial-gradient(ellipse, #1a4a8a 0%, transparent 70%)' }}
         aria-hidden="true"
       />
 
-      {/* Horizontal line top */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#1a4a8a]/40 to-transparent" aria-hidden="true" />
       <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C6A04C]/20 to-transparent" aria-hidden="true" />
 
       <div className="max-w-6xl mx-auto relative z-10">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -111,54 +119,50 @@ export function OrganizerSection({ lang }: OrganizerSectionProps) {
           </p>
         </motion.div>
 
-        {/* ── Main Grid ── */}
+        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
 
-          {/* Left: Images collage */}
+          {/* Images collage */}
           <motion.div
-            initial={{ opacity: 0, x: lang === 'ar' ? 30 : -30 }}
+            initial={{ opacity: 0, x: imagesX }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.15 }}
             className="relative flex items-center justify-center"
           >
-            {/* Glass mockup - background */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-20 blur-sm scale-110">
-              <img
-                src={smGlass}
-                alt=""
-                aria-hidden="true"
-                className="w-full max-w-sm object-contain"
-              />
+            {/* Glass mockup — decorative blur layer */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-20 blur-sm scale-110" aria-hidden="true">
+              <img src={smGlass} alt="" className="w-full max-w-sm object-contain" />
             </div>
 
             {/* Instagram post card */}
             <div className="relative z-10 w-56 sm:w-64 rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/60 rotate-[-3deg] translate-x-[-20px]">
               <img
                 src={smInstagram}
-                alt="Signature Media on Instagram"
+                alt="Signature Media على إنستغرام"
                 className="w-full object-cover"
                 loading="lazy"
               />
             </div>
 
-            {/* Main logo card */}
+            {/* ✅ Main logo — eager load since it's above the fold */}
             <div className="relative z-20 w-52 sm:w-60 rounded-2xl overflow-hidden border border-[#1a6aaa]/30 shadow-[0_0_40px_rgba(26,106,170,0.2)] rotate-[4deg] translate-x-[20px] -translate-y-4 bg-[#0a0a0a]">
               <img
                 src={smLogo}
                 alt="Signature Media Logo"
                 className="w-full object-contain p-4"
-                loading="lazy"
+                loading="eager"
               />
             </div>
 
-            {/* Official badge overlay */}
+            {/* Official badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={inView ? { opacity: 1, scale: 1 } : {}}
               transition={{ delay: 0.6, duration: 0.5 }}
               className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-30"
             >
-              <div className="flex items-center gap-2 bg-gradient-to-r from-[#C6A04C]/90 to-[#A8382A]/90 text-[#080808] text-xs font-black px-4 py-2 rounded-full shadow-xl whitespace-nowrap"
+              <div
+                className="flex items-center gap-2 bg-gradient-to-r from-[#C6A04C]/90 to-[#A8382A]/90 text-[#080808] text-xs font-black px-4 py-2 rounded-full shadow-xl whitespace-nowrap"
                 style={{ fontFamily: AR(lang) }}
               >
                 <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
@@ -167,36 +171,33 @@ export function OrganizerSection({ lang }: OrganizerSectionProps) {
             </motion.div>
           </motion.div>
 
-          {/* Right: Text content */}
+          {/* Text content */}
           <motion.div
-            initial={{ opacity: 0, x: lang === 'ar' ? -30 : 30 }}
+            initial={{ opacity: 0, x: textX }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="flex flex-col gap-6 pt-6 lg:pt-0"
           >
-            {/* Quote */}
+            {/* ✅ Blockquote — border direction computed cleanly, no inline overrides */}
             <blockquote
-              className="border-r-2 border-[#1a6aaa]/50 pr-5 italic text-white/60 text-base sm:text-lg leading-relaxed"
-              dir={lang === 'ar' ? 'rtl' : 'ltr'}
-              style={{ fontFamily: AR(lang), borderRight: lang === 'en' ? 'none' : undefined, borderLeft: lang === 'en' ? '2px solid rgba(26,106,170,0.5)' : undefined, paddingRight: lang === 'en' ? 0 : undefined, paddingLeft: lang === 'en' ? '1.25rem' : undefined }}
+              className={`italic text-white/60 text-base sm:text-lg leading-relaxed ${quoteClass}`}
+              style={{ fontFamily: AR(lang) }}
             >
               {t.quote}
             </blockquote>
 
-            {/* Body text */}
-            <p
-              className="text-white/55 text-sm sm:text-base leading-loose"
-              style={{ fontFamily: AR(lang) }}
-            >
+            {/* Body */}
+            <p className="text-white/55 text-sm sm:text-base leading-loose" style={{ fontFamily: AR(lang) }}>
               {t.body}
             </p>
 
-            {/* Instagram handle */}
+            {/* ✅ Correct lowercase Instagram URL */}
             <a
-              href="https://www.instagram.com/SignatureMedia"
+              href="https://www.instagram.com/signaturemedia"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 text-[#1a8aee]/70 hover:text-[#1a8aee] transition-colors group w-fit"
+              aria-label={`${t.instagramLabel} ${t.instagramHandle}`}
             >
               <span className="text-lg" aria-hidden="true">📷</span>
               <div>
@@ -209,7 +210,7 @@ export function OrganizerSection({ lang }: OrganizerSectionProps) {
           </motion.div>
         </div>
 
-        {/* ── Trust Pillars ── */}
+        {/* Trust Pillars */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
