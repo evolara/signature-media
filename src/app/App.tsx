@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Toaster } from 'sonner';
 import { HeroSection } from './components/hero-section';
 import { TicketsSection } from './components/tickets-section';
@@ -13,34 +13,44 @@ export default function App() {
   const [selectedTicket, setSelectedTicket] = useState<'vip' | 'classic' | null>(null);
   const [showBookingFlow, setShowBookingFlow] = useState(false);
 
+  // ✅ Single source of truth for dir/lang — removed redundant dir prop on the div
   useEffect(() => {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
   }, [lang]);
 
+  // ✅ Also lock horizontal scroll to prevent shifts during modal open
   useEffect(() => {
     document.body.style.overflow = showBookingFlow ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    document.body.style.overflowX = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.overflowX = '';
+    };
   }, [showBookingFlow]);
 
-  const toggleLanguage = () => setLang(p => p === 'ar' ? 'en' : 'ar');
+  const toggleLanguage = useCallback(() => setLang(p => p === 'ar' ? 'en' : 'ar'), []);
 
-  const handleBookNow = () => {
+  // ✅ Guard against scroll attempt while booking flow is open
+  const handleBookNow = useCallback(() => {
+    if (showBookingFlow) return;
     document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [showBookingFlow]);
 
-  const handleSelectTicket = (type: 'vip' | 'classic') => {
+  const handleSelectTicket = useCallback((type: 'vip' | 'classic') => {
     setSelectedTicket(type);
     setShowBookingFlow(true);
-  };
+  }, []);
 
-  const handleClose = () => {
+  // ✅ Close flow first, then clear ticket after exit animation window (300ms)
+  const handleClose = useCallback(() => {
     setShowBookingFlow(false);
-    setSelectedTicket(null);
-  };
+    setTimeout(() => setSelectedTicket(null), 300);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+    // ✅ dir removed here — already set on documentElement via useEffect
+    <div className="min-h-screen bg-[#080808] text-white">
       <Toaster
         position={lang === 'ar' ? 'top-left' : 'top-right'}
         theme="dark"
@@ -60,8 +70,15 @@ export default function App() {
       <OrganizerSection lang={lang} />
       <TestimonialsSection lang={lang} />
       <Footer lang={lang} onLanguageToggle={toggleLanguage} />
-      {showBookingFlow && selectedTicket && (
-        <BookingFlow lang={lang} selectedTicket={selectedTicket} onClose={handleClose} />
+
+      {/* ✅ selectedTicket stays mounted during exit animation */}
+      {selectedTicket && (
+        <BookingFlow
+          lang={lang}
+          selectedTicket={selectedTicket}
+          onClose={handleClose}
+          isOpen={showBookingFlow}
+        />
       )}
     </div>
   );
