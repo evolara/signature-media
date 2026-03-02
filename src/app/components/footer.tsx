@@ -29,7 +29,7 @@ export function Footer({ lang, onLanguageToggle }: FooterProps) {
         // ✅ Correct date: Thursday, March 26, 2026
         date:        'Thursday, March 26, 2026',
         location:    'Cairo, Egypt',
-        copyright:   '© 2026 Rooh Al-Tarab — All Rights Reserved',
+        copyright:   '© 2026 Aelzyat — All Rights Reserved',
         devLabel:    'Designed & Developed by',
       };
 
