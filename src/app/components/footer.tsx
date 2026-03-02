@@ -111,7 +111,7 @@ export function Footer({ lang, onLanguageToggle }: FooterProps) {
           <p className="text-white/15 text-[11px]" style={{ fontFamily: AR(lang) }}>
             {t.devLabel}{' '}
             <a
-              href="https://github.com/aelzyat"
+              href="https://github.com/aelzyat0"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#C6A04C]/40 hover:text-[#C6A04C]/70 transition-colors duration-300 font-semibold"
