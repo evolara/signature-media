@@ -55,7 +55,7 @@ function Particles() {
 }
 
 // ✅ Stable event date — defined once outside component
-const EVENT_DATE = new Date('2026-03-26T20:00:00');
+const EVENT_DATE = new Date('2026-04-24T20:00:00');
 
 export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
   const containerRef = useRef<HTMLElement>(null);
@@ -75,7 +75,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
         sub:      'في أجواء تحمل روح الأصالة والتنظيم الاحترافي',
         // ✅ Venue info added
         venue:    'دار الحرس الجمهوري — القاهرة',
-        dateStr:  'الخميس ٢٦ مارس ٢٠٢٦  |  ٨ مساءً',
+        dateStr:  'الخميس ٢٤ أبريل ٢٠٢٦  |  ٨ مساءً',
         cta:      'احجز تذكرتك الآن',
         scroll:   'اكتشف التذاكر',
         days:     'أيام', hours: 'ساعات', minutes: 'دقائق', seconds: 'ثواني',
@@ -87,7 +87,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
         sub:      'A refined atmosphere, professionally curated for those who appreciate the finest',
         // ✅ Venue info added
         venue:    'Republican Guard House — Cairo',
-        dateStr:  'Thursday, 26 March 2026  |  8 PM',
+        dateStr:  'Thursday, 24 April 2026  |  8 PM',
         cta:      'Book Your Ticket Now',
         scroll:   'Explore Tickets',
         days:     'Days', hours: 'Hours', minutes: 'Minutes', seconds: 'Seconds',
