@@ -1,60 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, X, AlertCircle, ChevronLeft, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Check, X, AlertCircle, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { AR } from './utils';
 import { Seat } from './seat-layout';
 import SeatPicker from './seat-picker';
-import { createClient } from '@supabase/supabase-js';
-
-// ─── Supabase ─────────────────────────────────────────────────────────────────
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-);
-
-// ─── localStorage (cache / offline fallback) ──────────────────────────────────
-const STORAGE_PREFIX = 'signature_media_bookings_';
-const getStorageKey  = (t: 'vip' | 'classic') => `${STORAGE_PREFIX}${t}`;
-
-function loadFromStorage(ticketType: 'vip' | 'classic'): Set<string> {
-  try {
-    const raw = localStorage.getItem(getStorageKey(ticketType));
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch { return new Set(); }
-}
-
-function saveToStorage(ticketType: 'vip' | 'classic', seats: Set<string>) {
-  try { localStorage.setItem(getStorageKey(ticketType), JSON.stringify([...seats])); } catch { /* ignore */ }
-}
-
-// ─── Supabase helpers ─────────────────────────────────────────────────────────
-async function fetchBookedSeats(ticketType: 'vip' | 'classic'): Promise<Set<string>> {
-  try {
-    const { data, error } = await supabase
-      .from('booked_seats')
-      .select('seat_key')
-      .eq('ticket_type', ticketType);
-    if (error) throw error;
-    return new Set((data ?? []).map((r: { seat_key: string }) => r.seat_key));
-  } catch (e) {
-    console.error('fetchBookedSeats error:', e);
-    return new Set();
-  }
-}
-
-async function reserveSeatsInSupabase(seats: Seat[], ticketType: 'vip' | 'classic'): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('booked_seats')
-      .insert(seats.map(s => ({ seat_key: `${s.row}-${s.number}`, ticket_type: ticketType })));
-    if (error) throw error;
-    return true;
-  } catch (e) {
-    console.error('reserveSeats error:', e);
-    return false;
-  }
-}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PERMANENTLY_BOOKED: Record<'vip' | 'classic', string[]> = {
@@ -71,7 +20,6 @@ interface BookingFlowProps {
   onClose: () => void;
 }
 
-// ✅ quantity is number | '' — no type hacks
 interface FormData {
   name: string;
   phone: string;
@@ -112,7 +60,7 @@ function CopyNumberBtn({ number, lang }: { number: string; lang: 'ar' | 'en' }) 
   );
 }
 
-// ─── BackBtn — outside component ─────────────────────────────────────────────
+// ─── BackBtn ──────────────────────────────────────────────────────────────────
 function BackBtn({ lang, onBack }: { lang: 'ar' | 'en'; onBack: () => void }) {
   return (
     <button onClick={onBack}
@@ -131,17 +79,16 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
   const [errors, setErrors]               = useState<Record<string, string>>({});
   const [bookingCode]                     = useState(generateBookingCode);
-  const [bookedSeats, setBookedSeats]     = useState<Set<string>>(new Set());
-  const [loadingSeats, setLoadingSeats]   = useState(true);
-  const [submitting, setSubmitting]       = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+
+  // ✅ Blocked seats from code only — no Supabase, no localStorage
+  const bookedSeats = new Set(PERMANENTLY_BOOKED[selectedTicket]);
 
   const nameRef     = useRef<HTMLInputElement>(null);
   const phoneRef    = useRef<HTMLInputElement>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
   const modalRef    = useRef<HTMLDivElement>(null);
 
-  // Focus trap + Escape
   useEffect(() => {
     modalRef.current?.focus();
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -149,21 +96,6 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     return () => window.removeEventListener('keydown', onEsc);
   }, [onClose]);
 
-  // ✅ Load from Supabase as source of truth, merge localStorage + permanent blocks
-  useEffect(() => {
-    setLoadingSeats(true);
-    const permanent = new Set(PERMANENTLY_BOOKED[selectedTicket]);
-
-    fetchBookedSeats(selectedTicket).then(remote => {
-      const local  = loadFromStorage(selectedTicket);
-      const merged = new Set([...remote, ...local, ...permanent]);
-      setBookedSeats(merged);
-      saveToStorage(selectedTicket, merged); // keep cache in sync
-      if (merged.size > 0) console.log(`📍 ${merged.size} booked seats for ${selectedTicket}`);
-    }).finally(() => setLoadingSeats(false));
-  }, [selectedTicket]);
-
-  // Reset seats when quantity changes
   useEffect(() => {
     setSelectedSeats([]);
     setErrors(e => ({ ...e, seats: '' }));
@@ -195,13 +127,10 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
         next:            'التالي',
         closeLabel:      'إغلاق النافذة',
         close:           'إغلاق',
-        loadingSeats:    'جارٍ تحميل المقاعد...',
         sentTitle:       'تم الإرسال بنجاح! 🎉',
         sentBody:        'تم إرسال بيانات حجزك عبر واتساب. سنتواصل معك قريباً لتأكيد المقاعد وإرسال التذكرة.',
         sentCode:        'كود الحجز',
         newBooking:      'حجز جديد',
-        submitting:      'جارٍ الإرسال...',
-        reserveError:    '⚠️ حدث خطأ أثناء حجز المقاعد، حاول مرة أخرى',
         err: { name: 'الاسم يجب أن يكون 2 أحرف على الأقل', phone: 'رقم يبدأ بـ 01 ومكون من 11 رقم', quantity: 'عدد صحيح أكبر من 0', seats: 'اختر المقاعد المطابقة للعدد' },
       }
     : {
@@ -225,17 +154,13 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
         next:            'Next',
         closeLabel:      'Close dialog',
         close:           'Close',
-        loadingSeats:    'Loading seats...',
         sentTitle:       'Sent Successfully! 🎉',
         sentBody:        "Your booking details were sent via WhatsApp. We'll reach out soon to confirm your seats.",
         sentCode:        'Booking Code',
         newBooking:      'New Booking',
-        submitting:      'Sending...',
-        reserveError:    '⚠️ Failed to reserve seats, please try again',
         err: { name: 'Name must be at least 2 characters', phone: 'Must start with 01 and be 11 digits', quantity: 'Valid number greater than 0', seats: 'Pick seats matching the quantity' },
       };
 
-  // ─── Handlers ─────────────────────────────────────────────────────────────
   const goBack = useCallback(() => setStep(s => s - 1), []);
 
   const handleFormNext = useCallback(() => {
@@ -261,24 +186,8 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     setStep(4);
   }, [formData.paymentMethod]);
 
-  // ✅ Reserves in Supabase FIRST, then sends WhatsApp
-  const handleSendWhatsApp = useCallback(async () => {
-    setSubmitting(true);
-
-    const ok = await reserveSeatsInSupabase(selectedSeats, selectedTicket);
-    if (!ok) {
-      toast.error(text.reserveError);
-      setSubmitting(false);
-      return;
-    }
-
-    // Update local cache
-    const newKeys = selectedSeats.map(s => `${s.row}-${s.number}`);
-    const updated = new Set([...bookedSeats, ...newKeys]);
-    saveToStorage(selectedTicket, updated);
-    setBookedSeats(updated);
-
-    // Build message
+  // ✅ Direct WhatsApp — no Supabase, no loading, no error handling needed
+  const handleSendWhatsApp = useCallback(() => {
     const seatsList = selectedSeats.map(s => `${s.row}${s.number}`).join(', ');
     const payLabels = {
       ar: { vodafone: 'فودافون كاش', instapay: 'انستاباي', later: 'أريد التواصل قبل الدفع' },
@@ -291,11 +200,8 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       : `🎫 New Booking\n\n👤 Name: ${formData.name}\n📞 Phone: ${formData.phone}\n🎟️ Qty: ${formData.quantity}\n💺 Seats: ${seatsList}\n🎭 Ticket: ${text.ticketName}\n💳 Payment: ${payLabel}\n📋 Code: ${bookingCode}\n\n✅ Safe & Trusted Platform`;
 
     window.open(`https://wa.me/201152625577?text=${encodeURIComponent(message)}`, '_blank');
-    toast.success(lang === 'ar' ? `✅ تم حجز ${newKeys.length} مقاعد` : `✅ Reserved ${newKeys.length} seats`);
-
-    setSubmitting(false);
     setStep(5);
-  }, [selectedSeats, selectedTicket, formData, lang, bookedSeats, bookingCode, text]);
+  }, [selectedSeats, formData, lang, bookingCode, text.ticketName]);
 
   const handleNewBooking = useCallback(() => {
     setFormData(EMPTY_FORM);
@@ -360,7 +266,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
             <AnimatePresence mode="wait">
 
-              {/* Step 1: Details */}
+              {/* Step 1 */}
               {step === 1 && (
                 <motion.div key="s1" variants={slideVar} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
                   <h2 className="text-xl font-black text-white mb-6" style={{ fontFamily: AR(lang) }}>{text.stepLabels[0]}</h2>
@@ -396,36 +302,26 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                 </motion.div>
               )}
 
-              {/* Step 2: Seats */}
+              {/* Step 2 */}
               {step === 2 && (
                 <motion.div key="s2" variants={slideVar} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
                   <h2 className="text-xl font-black text-white mb-4" style={{ fontFamily: AR(lang) }}>{text.selectSeats}</h2>
                   <p className="text-white/40 text-xs mb-4" style={{ fontFamily: AR(lang) }}>
                     {lang === 'ar' ? `اختر ${formData.quantity} مقاعد` : `Select ${formData.quantity} seats`}
                   </p>
-
-                  {/* ✅ Loading spinner while fetching from Supabase */}
-                  {loadingSeats ? (
-                    <div className="flex items-center justify-center gap-2 py-12 text-white/40">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span className="text-sm" style={{ fontFamily: AR(lang) }}>{text.loadingSeats}</span>
-                    </div>
-                  ) : (
-                    <div className="mb-6 overflow-x-auto">
-                      <SeatPicker
-                        key={`${selectedTicket}-${formData.quantity}`}
-                        type={selectedTicket}
-                        available={bookedSeats}
-                        quantity={formData.quantity as number}
-                        onChange={setSelectedSeats}
-                      />
-                      {errors.seats && <p className="mt-3 text-red-400/80 text-xs" role="alert" style={{ fontFamily: AR(lang) }}><AlertCircle className="w-3 h-3 inline mr-1" />{text.err.seats}</p>}
-                    </div>
-                  )}
-
+                  <div className="mb-6 overflow-x-auto">
+                    <SeatPicker
+                      key={`${selectedTicket}-${formData.quantity}`}
+                      type={selectedTicket}
+                      available={bookedSeats}
+                      quantity={formData.quantity as number}
+                      onChange={setSelectedSeats}
+                    />
+                    {errors.seats && <p className="mt-3 text-red-400/80 text-xs" role="alert" style={{ fontFamily: AR(lang) }}><AlertCircle className="w-3 h-3 inline mr-1" />{text.err.seats}</p>}
+                  </div>
                   <div className="flex gap-3">
                     <BackBtn lang={lang} onBack={goBack} />
-                    <button onClick={handleSeatsNext} disabled={selectedSeats.length !== formData.quantity || loadingSeats}
+                    <button onClick={handleSeatsNext} disabled={selectedSeats.length !== formData.quantity}
                       className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3 rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-opacity"
                       style={{ fontFamily: AR(lang) }}>
                       {text.next} {lang === 'ar' ? '←' : '→'}
@@ -434,7 +330,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                 </motion.div>
               )}
 
-              {/* Step 3: Payment */}
+              {/* Step 3 */}
               {step === 3 && (
                 <motion.div key="s3-pay" variants={slideVar} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
                   <h2 className="text-xl font-black text-white mb-2" style={{ fontFamily: AR(lang) }}>{text.paymentMethod}</h2>
@@ -490,7 +386,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                 </motion.div>
               )}
 
-              {/* Step 4: Review */}
+              {/* Step 4 */}
               {step === 4 && (
                 <motion.div key="s4" variants={slideVar} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
                   <h2 className="text-xl font-black text-white mb-6" style={{ fontFamily: AR(lang) }}>{text.review}</h2>
@@ -519,19 +415,16 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                       <p className="text-[#C6A04C] font-bold text-sm">{text.supportNumber}</p>
                     </div>
                   </div>
-                  {/* ✅ Submitting state */}
-                  <button onClick={handleSendWhatsApp} disabled={submitting}
-                    className="w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 font-black py-3.5 rounded-xl mb-3 text-sm transition-colors disabled:opacity-60 disabled:cursor-wait flex items-center justify-center gap-2"
+                  <button onClick={handleSendWhatsApp}
+                    className="w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 font-black py-3.5 rounded-xl mb-3 text-sm transition-colors flex items-center justify-center gap-2"
                     style={{ fontFamily: AR(lang) }}>
-                    {submitting
-                      ? <><Loader2 className="w-4 h-4 animate-spin" />{text.submitting}</>
-                      : <>{text.send} {lang === 'ar' ? '←' : '→'}</>}
+                    {text.send} {lang === 'ar' ? '←' : '→'}
                   </button>
                   <BackBtn lang={lang} onBack={goBack} />
                 </motion.div>
               )}
 
-              {/* Step 5: Success */}
+              {/* Step 5 */}
               {step === 5 && (
                 <motion.div key="s5" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} className="text-center py-6">
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.15, type: 'spring', stiffness: 300, damping: 20 }} className="flex justify-center mb-6">
