@@ -49,7 +49,7 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
         book: 'احجز تذكرتك الآن',
         switchLang: 'EN',
         upcoming: 'الفعاليات القادمة',
-        waUrl: 'https://wa.me/201015656650?text=مرحبا%20أنا%20مهتم%20بمعرفة%20المزيد%20عن%20الفعاليات%20القادمة',
+        waUrl: 'https://wa.me/201152625577?text=مرحبا%20أنا%20مهتم%20بمعرفة%20المزيد%20عن%20الفعاليات%20القادمة',
         waLabel: 'تواصل عبر واتس',
         upcomingTitle: 'الفعاليات القادمة',
         upcomingDesc: 'تواصل معنا للاستفسار عن الفعاليات والعروض الخاصة',
@@ -61,7 +61,7 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
         switchLang: 'ع',
         upcoming: 'Upcoming Events',
         // ✅ English WhatsApp message for English users
-        waUrl: 'https://wa.me/201015656650?text=Hello%2C%20I%20am%20interested%20in%20learning%20more%20about%20upcoming%20events',
+        waUrl: 'https://wa.me/201152625577?text=Hello%2C%20I%20am%20interested%20in%20learning%20more%20about%20upcoming%20events',
         waLabel: 'Contact via WhatsApp',
         upcomingTitle: 'Upcoming Events',
         upcomingDesc: 'Contact us to inquire about upcoming events and special offers',
