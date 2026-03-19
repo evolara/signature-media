@@ -58,8 +58,8 @@ async function reserveSeatsInSupabase(seats: Seat[], ticketType: 'vip' | 'classi
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PERMANENTLY_BOOKED: Record<'vip' | 'classic', string[]> = {
-  classic: ['A-5', 'A-6', 'A-7', 'B-5', 'B-6', 'B-10', 'B-11'],
-  vip:     ['B-8'],
+  classic: ['B-10', 'B-11'],
+  vip:     [],
 };
 
 const PAYMENT_NUMBER = '01152625577';
