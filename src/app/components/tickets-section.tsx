@@ -207,7 +207,7 @@ function TicketCard({
 }
 
 // ─── Main Section ──────────────────────────────────────────────────────────────
-const EVENT_DATE = new Date('2026-03-26T20:00:00');
+const EVENT_DATE = new Date('2026-04-24T20:00:00');
 
 export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
   const ref = useRef(null);
@@ -216,7 +216,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
   const t = lang === 'ar'
     ? {
         heading: 'التذاكر',
-        subheading: 'تذاكر أمسية خامس ليالي عيد الفطر المبارك',
+        subheading: 'تذاكر حفله روح الطرب ',
         classicTitle: 'Classic', classicSub: 'كلاسيك',
         classicBadge: 'حضور راقٍ',
         classicPrice: '350', classicCur: 'جنيه',
