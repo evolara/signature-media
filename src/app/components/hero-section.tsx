@@ -70,12 +70,12 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
 
   const t = lang === 'ar'
     ? {
-        eid:      'اليوم الخامس من عيد الفطر المبارك',
+        eid:      'اليوم الرابع والعشرون من شهر ابريل',
         tagline:  'حضور راقٍ لليلة طربية استثنائية',
         sub:      'في أجواء تحمل روح الأصالة والتنظيم الاحترافي',
         // ✅ Venue info added
         venue:    'دار الحرس الجمهوري — القاهرة',
-        dateStr:  'الخميس ٢٤ أبريل ٢٠٢٦  |  ٨ مساءً',
+        dateStr:  'الجمعه ٢٤ أبريل ٢٠٢٦  |  ٨ مساءً',
         cta:      'احجز تذكرتك الآن',
         scroll:   'اكتشف التذاكر',
         days:     'أيام', hours: 'ساعات', minutes: 'دقائق', seconds: 'ثواني',
