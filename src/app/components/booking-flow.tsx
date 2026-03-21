@@ -7,7 +7,7 @@ import SeatPicker from './seat-picker';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PERMANENTLY_BOOKED: Record<'vip' | 'classic', string[]> = {
-  classic: ['B-10', 'B-11'],
+  classic: ['B-10', 'B-11', 'B-12', 'B-13', 'B-14', 'B-15', 'B-16'],
   vip:     [],
 };
 
@@ -186,7 +186,6 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     setStep(4);
   }, [formData.paymentMethod]);
 
-  // ✅ Direct WhatsApp — no Supabase, no loading, no error handling needed
   const handleSendWhatsApp = useCallback(() => {
     const seatsList = selectedSeats.map(s => `${s.row}${s.number}`).join(', ');
     const payLabels = {
