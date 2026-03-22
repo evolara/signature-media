@@ -7,7 +7,7 @@ import SeatPicker from './seat-picker';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PERMANENTLY_BOOKED: Record<'vip' | 'classic', string[]> = {
-  classic: ['B-10', 'B-11', 'B-12', 'B-13', 'B-14', 'B-15', 'B-16'],
+  classic: ['B-12', 'B-13', 'B-14', 'B-15', 'B-16'],
   vip:     [],
 };
 
